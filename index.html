@@ -385,8 +385,8 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
           <div class="ang-presets"><button class="ang-preset-btn" onclick="setAng('ou-ang','ou-ang-num',0,'onOUAngle')">0°</button><button class="ang-preset-btn" onclick="setAng('ou-ang','ou-ang-num',45,'onOUAngle')">45°</button><button class="ang-preset-btn" onclick="setAng('ou-ang','ou-ang-num',90,'onOUAngle')">90°</button><button class="ang-preset-btn" onclick="setAng('ou-ang','ou-ang-num',-45,'onOUAngle')">-45°</button><button class="ang-preset-btn" onclick="setAng('ou-ang','ou-ang-num',-90,'onOUAngle')">-90°</button></div>
         </div>
         <div class="row">
-          <div class="f"><label>X位置 (mm)</label><input type="number" id="ou-x" value="1103" oninput="render()"></div>
-          <div class="f"><label>Y位置 (mm)</label><input type="number" id="ou-y" value="-1886" oninput="render()"></div>
+          <div class="f"><label>X位置 (mm)</label><input type="number" id="ou-x" value="1252.1" oninput="render()"></div>
+          <div class="f"><label>Y位置 (mm)</label><input type="number" id="ou-y" value="-1836.3" oninput="render()"></div>
         </div>
 
         <div class="f" style="margin-top:6px"><label>移動量 (mm/step)</label><input type="number" id="kbd-step" value="10" min="1" max="200" oninput=""></div>
@@ -421,8 +421,8 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
           <div class="ang-presets"><button class="ang-preset-btn" onclick="setArmSwRel(-1)">左端</button><button class="ang-preset-btn" onclick="setArmSwRel(0)">基準</button><button class="ang-preset-btn" onclick="setArmSwRel(1)">右端</button></div>
         </div>
         <div class="row">
-          <div class="f"><label>アームベース中心 X（OU前面中央から）(mm)</label><input type="number" id="arm-x" value="550" oninput="render()"></div>
-          <div class="f"><label>アームベース中心 Y（OU前面中央から）(mm)</label><input type="number" id="arm-y" value="640" oninput="render()"></div>
+          <div class="f"><label>アームベース中心 X（OU前面中央から）(mm)</label><input type="number" id="arm-x" value="415" oninput="render()"></div>
+          <div class="f"><label>アームベース中心 Y（OU前面中央から）(mm)</label><input type="number" id="arm-y" value="580" oninput="render()"></div>
         </div>
         <div style="margin-top:2px"><button class="btn btn-sm" onclick="flipArmX()" title="アームベース中心Xの符号を反転して左右を入れ替えます" style="width:100%">⇄ アームベースX 左右反転（＋／－入替）</button></div>
         <div class="row">
@@ -1759,8 +1759,7 @@ function drawOU(dark){
   if(gc('show-dims')){
     ctx.fillStyle=dark?'rgba(255,255,255,0.6)':'rgba(0,0,60,0.6)';
     ctx.font='bold 13px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText('OU',0,bh*0.3);ctx.font='10px sans-serif';
-    ctx.fillText(w+'x'+d+'mm',0,bh*0.3+16);
+    ctx.fillText('OU',0,bh*0.3);
   }
   if(isSel){
     ctx.strokeStyle='rgba(250,204,21,0.25)';ctx.lineWidth=10;
@@ -1882,7 +1881,7 @@ function drawTable(dark){
     ctx.fillStyle=dark?'rgba(255,255,255,0.55)':'rgba(0,0,60,0.6)';
     ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
     const presetLabel = activeTblPresetName || 'カスタム';
-    ctx.fillText(presetLabel,0,-12);ctx.font='10px sans-serif';ctx.fillText(`${w}×${d}mm`,0,4);
+    ctx.fillText(presetLabel,0,0);
   }
   if(isSel){
     ctx.strokeStyle='rgba(250,204,21,0.25)';ctx.lineWidth=8;
@@ -4241,12 +4240,12 @@ function resetToInitial(){
   s('ou-d',   1150);
   s('ou-piv', 560);
   s('ou-ang', 45);   s('ou-ang-num', 45);
-  s('ou-x',   1103);
-  s('ou-y',   -1886);
+  s('ou-x',   1252.1);
+  s('ou-y',   -1836.3);
   // アームベース
   s('arm-sw',     0); s('arm-sw-num', 0);
-  s('arm-x',    550);
-  s('arm-y',    640);
+  s('arm-x',    415);
+  s('arm-y',    580);
   s('arm-bw',   330);
   s('arm-bh',  1000);
   s('cam-x',     0);
