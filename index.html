@@ -673,11 +673,10 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
   <div class="status-row status-row2">
     <span>🤖 ロールイン角度:</span>
     <span class="info-badge" id="rollin-badge">—</span>
-    <span style="margin-left:16px">📐 ガイド線／手術台:</span>
-    <span class="info-badge" id="rel-ang-badge">—</span>
-    <span id="rel-ang-txt">—</span>
-    <span style="margin-left:auto">🛏️ 手術台角度: <span id="tbl-ang-s">0.0°</span></span>
-    <span>📐 傾斜: <span id="tilt-s">なし</span></span>
+    <span style="margin-left:16px;font-weight:700;color:#f59e0b">📍 ポート列／ガイド線:</span>
+    <span class="info-badge" id="port-guide-badge" style="color:#f59e0b;border-color:#f59e0b;font-size:15px;padding:2px 10px">—</span>
+    <span id="port-guide-txt" style="font-size:10px;color:var(--muted)"></span>
+    <span style="margin-left:auto">📐 傾斜: <span id="tilt-s">なし</span></span>
   </div>
   <div class="status-row" id="measure-row" style="display:none;background:rgba(250,204,21,0.07);border-top:1px solid var(--border)">
     <span style="color:#facc15;font-weight:600">📏 距離計測モード</span>
@@ -837,6 +836,8 @@ function c2w(cx,cy){return{x:(cx-cvs.width/2-VIEW.px)/VIEW.sc,y:-(cy-cvs.height/
 let extraPorts = []; // {id, label, color, size, x, y} ワールド座標
 let addPortMode = false;
 let nextPortId = 1;
+let portLineStart = null; // 角度計測：起点ポートID
+let portLineEnd   = null; // 角度計測：終点ポートID
 let dragPortId = null; // ドラッグ中のポートID
 
 function toggleAddPortMode(){
@@ -863,7 +864,16 @@ function renderPortList(){
     return;
   }
   const esc = s => (s==null?'':String(s)).replace(/"/g,'&quot;');
-  el.innerHTML = extraPorts.map(p=>`
+  ensurePortLineDefaults();
+  const opts = sel => extraPorts.map(p=>`<option value="${p.id}" ${p.id===sel?'selected':''}>${esc(p.label)||('ポート'+p.id)}</option>`).join('');
+  const selectorHtml = extraPorts.length>=2 ? `
+    <div style="display:flex;align-items:center;gap:4px;margin-bottom:6px;padding:6px;border:1px solid var(--border);border-radius:6px;background:rgba(245,158,11,0.06);flex-wrap:wrap">
+      <span style="font-size:10px;color:#f59e0b;font-weight:700;width:100%">📐 ポート列の角度計測（起点→終点）</span>
+      <select onchange="setPortLine('start',this.value)" style="flex:1;min-width:60px;font-size:11px;padding:3px 4px"><option value="">起点…</option>${opts(portLineStart)}</select>
+      <span style="font-size:11px;color:var(--muted)">→</span>
+      <select onchange="setPortLine('end',this.value)" style="flex:1;min-width:60px;font-size:11px;padding:3px 4px"><option value="">終点…</option>${opts(portLineEnd)}</select>
+    </div>` : '';
+  el.innerHTML = selectorHtml + extraPorts.map(p=>`
     <div class="port-item" style="flex-wrap:wrap;gap:4px;padding:6px 0">
       <input type="color" value="${p.color}" title="色を変更" onchange="updateExtraPort(${p.id},'color',this.value)" style="width:26px;height:26px;padding:0;border:1px solid var(--border);border-radius:5px;background:none;cursor:pointer;flex-shrink:0">
       <input type="text" value="${esc(p.label)}" placeholder="ラベル" title="ラベル" onchange="updateExtraPort(${p.id},'label',this.value)" style="flex:1;min-width:50px;font-size:11px;padding:3px 5px">
@@ -888,11 +898,25 @@ function updateExtraPort(id, field, value){
 
 function removeExtraPort(id){
   extraPorts = extraPorts.filter(p=>p.id!==id);
+  if(portLineStart===id) portLineStart=null;
+  if(portLineEnd===id)   portLineEnd=null;
   renderPortList();
   render();
 }
 
 function drawExtraPorts(dark){
+  // 角度計測：起点→終点を結ぶ直線
+  const _ps=extraPorts.find(p=>p.id===portLineStart);
+  const _pe=extraPorts.find(p=>p.id===portLineEnd);
+  if(_ps && _pe && _ps!==_pe){
+    const a=w2c(_ps.x,_ps.y), b=w2c(_pe.x,_pe.y);
+    ctx.save();
+    ctx.setLineDash([8,5]);
+    ctx.strokeStyle=dark?'rgba(245,158,11,0.95)':'rgba(217,119,6,0.95)';
+    ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+    ctx.restore();
+  }
   extraPorts.forEach(p=>{
     const pc = w2c(p.x, p.y);
     const r = Math.max(6, (p.size||12)/2 * VIEW.sc);
@@ -1142,6 +1166,53 @@ function getPort(corr=true){
 function getGuideAngleWorld(){
   const ouA=gv('ou-ang'),sw=gv('arm-sw'),ga=gv('gl-ang');
   return d2r(ouA+sw+ga);
+}
+
+// ===== ポート列とアームベースガイド線の角度（0〜90°） =====
+// 角度計測の起点・終点の既定選択を補完（先頭2ポート）
+function ensurePortLineDefaults(){
+  const ids=extraPorts.map(p=>p.id);
+  if(portLineStart===null || ids.indexOf(portLineStart)<0) portLineStart=ids.length?ids[0]:null;
+  if(portLineEnd===null || ids.indexOf(portLineEnd)<0 || portLineEnd===portLineStart){
+    const e=ids.find(id=>id!==portLineStart);
+    portLineEnd = e===undefined?null:e;
+  }
+}
+function setPortLine(which, val){
+  const id = (val===''||val==null) ? null : parseInt(val,10);
+  if(which==='start') portLineStart=id; else portLineEnd=id;
+  renderPortList();
+  render();
+}
+// 選択した2ポートを結ぶ直線と、アームベースのガイド線との角度(0〜90°)
+function getPortLineAngle(){
+  ensurePortLineDefaults();
+  const a=extraPorts.find(p=>p.id===portLineStart);
+  const b=extraPorts.find(p=>p.id===portLineEnd);
+  if(!a||!b||a===b) return null;
+  const lineW=Math.atan2(b.y-a.y, b.x-a.x);
+  const guideW=getGuideAngleWorld();
+  let diff=Math.abs(lineW-guideW)*180/Math.PI;
+  diff=((diff%360)+360)%360;
+  if(diff>180)diff=360-diff;
+  if(diff>90)diff=180-diff;
+  return diff;
+}
+function updatePortGuideStatus(){
+  const badge=$('port-guide-badge'), txt=$('port-guide-txt');
+  if(!badge) return;
+  const ang=getPortLineAngle();
+  if(ang===null){
+    badge.textContent='—';
+    badge.style.color='#64748b'; badge.style.borderColor='#64748b';
+    if(txt) txt.textContent='起点・終点ポートを選択';
+    return;
+  }
+  badge.textContent=ang.toFixed(1)+'°';
+  const aligned=ang<=3, near=ang<=10;
+  const col=aligned?'#22c55e':near?'#f59e0b':'#ef4444';
+  badge.style.color=col; badge.style.borderColor=col;
+  if(txt) txt.textContent=aligned?'✅ ほぼ一致（理想）':near?'⚠️ ややズレ':'❌ 要調整';
 }
 
 function resize(){
@@ -2115,24 +2186,13 @@ function updateStatus(d,cam){
     var _ai=$('arm-sw-info'); if(_ai) _ai.textContent='可動±'+_alim.toFixed(1)+'°'+(_apat?'（'+_apat+'）':'');
   }
   $('cam-pos-s').textContent=`(${cam.x.toFixed(0)}, ${cam.y.toFixed(0)})mm`;
-  const tblAng=gv('tbl-ang');
-  $('tbl-ang-s').textContent=tblAng.toFixed(1)+'°';
   const rollinAng=getRollinAngle();
   const rollinDispAng=Math.abs(rollinAng)<=90?Math.abs(rollinAng):180-Math.abs(rollinAng);
   const rollinBadge=$('rollin-badge');
   rollinBadge.textContent=rollinDispAng.toFixed(1)+'°';
   rollinBadge.style.color='#a78bfa';rollinBadge.style.borderColor='#a78bfa';
-  const guideAngDeg=gv('ou-ang')+gv('arm-sw')+gv('gl-ang');
-  let relAng=guideAngDeg-tblAng;
-  relAng=((relAng+180)%360+360)%360-180;
-  const relBadge=$('rel-ang-badge');
-  relBadge.textContent=relAng.toFixed(1)+'°';
-  const absRel=Math.abs(relAng);
-  const nearPar=absRel<10||absRel>170;
-  const nearPerp=Math.abs(absRel-90)<10;
-  relBadge.style.color=nearPerp?'#22c55e':nearPar?'#eab308':'var(--accent)';
-  relBadge.style.borderColor=relBadge.style.color;
-  $('rel-ang-txt').textContent=nearPerp?'✅ ほぼ直交（理想）':nearPar?'⚠️ ほぼ平行':'';
+  // ポート列（起点→終点の直線）とアームベースのガイド線との角度（0〜90°）
+  if(typeof updatePortGuideStatus==='function') updatePortGuideStatus();
   const tiltType=$('tilt-type').value,tiltAng=gv('tilt-ang');
   const lrEl=document.getElementById('tilt-lr-type');
   const lrAng=parseFloat((document.getElementById('tilt-lr-ang')||{value:0}).value)||0;
