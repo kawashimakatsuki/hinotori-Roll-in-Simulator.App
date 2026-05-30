@@ -97,6 +97,12 @@ canvas.paint-text{cursor:text}
 .btn-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
 .btn-active{border-color:#facc15!important;color:#facc15!important}
 
+/* アームベース・カメラ プリセット */
+.arm-preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:8px}
+.arm-preset-btn{padding:5px 4px;border-radius:5px;border:1px solid var(--border);background:var(--surf2);color:var(--text);font-size:10px;cursor:pointer;text-align:center;line-height:1.3;}
+.arm-preset-btn:hover{opacity:.85}
+.arm-preset-btn.btn-active{border-color:#06b6d4!important;color:#06b6d4!important}
+
 /* 手術台プリセット */
 .tbl-preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:8px}
 .tbl-preset-btn{padding:5px 4px;border-radius:5px;border:1px solid var(--border);background:var(--surf2);color:var(--text);font-size:10px;cursor:pointer;transition:all .2s;text-align:center;line-height:1.3}
@@ -108,7 +114,7 @@ canvas.paint-text{cursor:text}
 .port-item:last-child{border-bottom:none}
 .port-item-label{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
 .port-color-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-.port-list{max-height:160px;overflow-y:auto;margin-top:5px}
+.port-list{max-height:260px;overflow-y:auto;margin-top:5px}
 
 /* キーボード移動ステータス */
 .kbd-hint{font-size:10px;color:var(--muted);margin-top:4px;background:rgba(0,212,255,0.05);border:1px solid var(--border);border-radius:4px;padding:4px 7px}
@@ -398,19 +404,27 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
     <div class="sec">
       <div class="sec-hd" onclick="toggleSec(this)"><span>📷 アームベース</span><span class="arr">▶</span></div>
       <div class="sec-bd">
-        <div class="f"><label>アームベース旋回角度 (°)</label>
-          <div class="slider-row">
-            <button class="sl-btn" onclick="slStep('arm-sw',-180,180,0.5,-1)" title="減らす">－</button>
-            <input type="range" id="arm-sw" min="-180" max="180" step="0.5" value="0" oninput="onArmSwivel();checkHiddenArm()">
-            <button class="sl-btn" onclick="slStep('arm-sw',-180,180,0.5,+1)" title="増やす">＋</button>
-            <input type="number" id="arm-sw-num" min="-180" max="180" step="0.5" value="0" oninput="onArmSwivelNum()">
+        <div class="f"><label>ロールイン姿勢パターン</label>
+          <div class="btn-row">
+            <button class="btn btn-sm" id="arm-pat-par"  onclick="setArmPattern('parallel')" style="flex:1;white-space:normal;line-height:1.25;padding:7px 4px;">肺・上腹部・骨盤部</button>
+            <button class="btn btn-sm" id="arm-pat-perp" onclick="setArmPattern('perp')" style="flex:1;white-space:normal;line-height:1.25;padding:7px 4px;">食道・腎臓・下腹部</button>
           </div>
-          <div class="ang-presets"><button class="ang-preset-btn" onclick="setAng('arm-sw','arm-sw-num',0,'onArmSw')">0°</button><button class="ang-preset-btn" onclick="setAng('arm-sw','arm-sw-num',45,'onArmSw')">45°</button><button class="ang-preset-btn" onclick="setAng('arm-sw','arm-sw-num',90,'onArmSw')">90°</button><button class="ang-preset-btn" onclick="setAng('arm-sw','arm-sw-num',-45,'onArmSw')">-45°</button><button class="ang-preset-btn" onclick="setAng('arm-sw','arm-sw-num',-90,'onArmSw')">-90°</button></div>
+          <div style="font-size:10px;color:var(--muted);margin-top:3px">基準姿勢から左右±27.8°の範囲で旋回できます</div>
+        </div>
+        <div class="f"><label>アームベース旋回角度（基準=0°）<span class="rv" id="arm-sw-range"></span></label>
+          <div class="slider-row">
+            <button class="sl-btn" onclick="armSwStep(-1)" title="減らす">－</button>
+            <input type="range" id="arm-sw" min="-27.8" max="27.8" step="0.1" value="0" oninput="onArmSwivel();checkHiddenArm()">
+            <button class="sl-btn" onclick="armSwStep(1)" title="増やす">＋</button>
+            <input type="number" id="arm-sw-num" min="-27.8" max="27.8" step="0.1" value="0" oninput="onArmSwivelNum()">
+          </div>
+          <div class="ang-presets"><button class="ang-preset-btn" onclick="setArmSwRel(-1)">左端</button><button class="ang-preset-btn" onclick="setArmSwRel(0)">基準</button><button class="ang-preset-btn" onclick="setArmSwRel(1)">右端</button></div>
         </div>
         <div class="row">
-          <div class="f"><label>アームベース中心 X (mm)</label><input type="number" id="arm-x" value="550" oninput="render()"></div>
-          <div class="f"><label>アームベース中心 Y (mm)</label><input type="number" id="arm-y" value="1200" oninput="render()"></div>
+          <div class="f"><label>アームベース中心 X（OU前面中央から）(mm)</label><input type="number" id="arm-x" value="550" oninput="render()"></div>
+          <div class="f"><label>アームベース中心 Y（OU前面中央から）(mm)</label><input type="number" id="arm-y" value="640" oninput="render()"></div>
         </div>
+        <div style="margin-top:2px"><button class="btn btn-sm" onclick="flipArmX()" title="アームベース中心Xの符号を反転して左右を入れ替えます" style="width:100%">⇄ アームベースX 左右反転（＋／－入替）</button></div>
         <div class="row">
           <div class="f"><label>アームベース 幅 (mm)</label><input type="number" id="arm-bw" value="330" min="50" max="400" oninput="render()"></div>
           <div class="f"><label>アームベース 長さ (mm)</label><input type="number" id="arm-bh" value="1000" min="100" max="1000" oninput="render()"></div>
@@ -418,6 +432,11 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
         <div class="row">
           <div class="f"><label>ポジショニングカメラ<br>Xオフセット (mm)</label><input type="number" id="cam-x" value="0" oninput="render()"></div>
           <div class="f"><label>ポジショニングカメラ<br>Yオフセット (mm)</label><input type="number" id="cam-y" value="0" oninput="render()"></div>
+        </div>
+        <div style="margin-top:8px;">
+          <div style="font-size:10px;font-weight:700;color:var(--muted);margin-bottom:6px;">🦾 アームベース・カメラ プリセット</div>
+          <div class="arm-preset-grid" id="arm-preset-grid"></div>
+          <button class="btn btn-sm" onclick="openSaveArmPresetModal()" style="width:100%;margin-top:2px;">＋ 現在の設定を保存</button>
         </div>
         <hr class="sep">
         <div class="f"><label><input type="checkbox" id="show-guide" checked onchange="render()"> ガイド線を表示</label></div>
@@ -496,7 +515,7 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
       <div class="sec-hd" onclick="toggleSec(this)"><span>📍 追加ポート</span><span class="arr">▶</span></div>
       <div class="sec-bd">
         <div style="font-size:10px;color:var(--muted);margin-bottom:6px">
-          ヘッダーの「📍 ポート追加」ボタンを押してキャンバス上をクリックすると追加できます。
+          ヘッダーの「📍 ポート追加」ボタンを押してキャンバス上をクリックすると追加できます。<br>追加後は下のリストで色・ラベル・X/Y位置・サイズを調整できます（キャンバス上のドラッグでも移動可）。
         </div>
         <div class="f">
           <label>ポートラベル</label>
@@ -648,6 +667,7 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
     <span id="collision-txt" style="color:#ef4444;font-weight:700;display:none">⚠️ 接触</span>
     <span style="margin-left:auto">スケール: <span id="scale-txt">—</span></span>
     <span>OU角度: <span id="ou-ang-s">0.0°</span></span>
+    <span style="font-weight:700;color:#06b6d4">🦾 アームベース旋回:</span><span class="dist-badge" id="arm-sw-s" style="color:#06b6d4;border-color:#06b6d4;font-size:15px;padding:2px 10px">0.0°</span><span id="arm-sw-info" style="color:var(--muted);font-size:10px;margin-left:2px"></span>
     <span>カメラ: <span id="cam-pos-s">—</span></span>
   </div>
   <div class="status-row status-row2">
@@ -784,6 +804,22 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
   </div>
 </div>
 
+<!-- アームベース・カメラ プリセット保存モーダル -->
+<div class="modal-bg" id="arm-preset-modal">
+  <div class="modal" style="width:300px">
+    <h3>🦾 プリセットを保存</h3>
+    <div class="f" style="margin-bottom:8px;">
+      <label>プリセット名</label>
+      <input type="text" id="arm-preset-name" placeholder="例：標準設定" style="width:100%;padding:5px;border-radius:5px;border:1px solid var(--border);background:var(--surf2);color:var(--text);">
+    </div>
+    <div id="arm-preset-dim-preview" style="font-size:10px;color:var(--muted);margin-bottom:10px;"></div>
+    <div class="btn-row">
+      <button class="btn" onclick="closeSaveArmPresetModal()">キャンセル</button>
+      <button class="btn btn-acc" onclick="doSaveArmPreset()">保存する</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const cvs=document.getElementById('c'),ctx=cvs.getContext('2d');
 const $=id=>document.getElementById(id);
@@ -826,14 +862,28 @@ function renderPortList(){
     el.innerHTML='<div style="font-size:10px;color:var(--muted);padding:4px 0">追加ポートなし</div>';
     return;
   }
+  const esc = s => (s==null?'':String(s)).replace(/"/g,'&quot;');
   el.innerHTML = extraPorts.map(p=>`
-    <div class="port-item">
-      <div class="port-color-dot" style="background:${p.color}"></div>
-      <span class="port-item-label" title="${p.label}">${p.label||'ポート'}</span>
-      <span style="font-size:10px;color:var(--muted)">(${p.x.toFixed(0)},${p.y.toFixed(0)})</span>
-      <button class="btn btn-sm btn-del" onclick="removeExtraPort(${p.id})">✕</button>
+    <div class="port-item" style="flex-wrap:wrap;gap:4px;padding:6px 0">
+      <input type="color" value="${p.color}" title="色を変更" onchange="updateExtraPort(${p.id},'color',this.value)" style="width:26px;height:26px;padding:0;border:1px solid var(--border);border-radius:5px;background:none;cursor:pointer;flex-shrink:0">
+      <input type="text" value="${esc(p.label)}" placeholder="ラベル" title="ラベル" onchange="updateExtraPort(${p.id},'label',this.value)" style="flex:1;min-width:50px;font-size:11px;padding:3px 5px">
+      <button class="btn btn-sm btn-del" title="削除" onclick="removeExtraPort(${p.id})" style="flex-shrink:0">✕</button>
+      <div style="display:flex;gap:4px;width:100%">
+        <label style="flex:1;font-size:9px;color:var(--muted)">X(mm)<input type="number" value="${Math.round(p.x)}" onchange="updateExtraPort(${p.id},'x',this.value)" style="width:100%;font-size:10px;padding:2px 4px"></label>
+        <label style="flex:1;font-size:9px;color:var(--muted)">Y(mm)<input type="number" value="${Math.round(p.y)}" onchange="updateExtraPort(${p.id},'y',this.value)" style="width:100%;font-size:10px;padding:2px 4px"></label>
+        <label style="flex:1;font-size:9px;color:var(--muted)">サイズ<input type="number" min="5" max="30" value="${p.size}" onchange="updateExtraPort(${p.id},'size',this.value)" style="width:100%;font-size:10px;padding:2px 4px"></label>
+      </div>
     </div>
   `).join('');
+}
+
+function updateExtraPort(id, field, value){
+  const p = extraPorts.find(q=>q.id===id);
+  if(!p) return;
+  if(field==='label') p.label = value;
+  else if(field==='color') p.color = value;
+  else p[field] = parseFloat(value)||0;   // x, y, size
+  render();   // 入力フォーカス維持のためリストは再描画しない
 }
 
 function removeExtraPort(id){
@@ -932,6 +982,7 @@ function applyTblPreset(name){
   $('tbl-w').value = p.w;
   $('tbl-d').value = p.d;
   renderTblPresetGrid();
+  if(typeof renderArmPresetGrid==="function") renderArmPresetGrid();
   render();
 }
 
@@ -939,6 +990,7 @@ function onTblDimChange(){
   // 寸法を手動変更したらアクティブプリセットを解除
   activeTblPresetName = '';
   renderTblPresetGrid();
+  if(typeof renderArmPresetGrid==="function") renderArmPresetGrid();
   render();
 }
 
@@ -957,6 +1009,7 @@ function doSaveTblPreset(){
   saveUserTblPreset(name, gv('tbl-w'), gv('tbl-d'));
   activeTblPresetName = name;
   renderTblPresetGrid();
+  if(typeof renderArmPresetGrid==="function") renderArmPresetGrid();
   closeSaveTblPresetModal();
 }
 
@@ -966,6 +1019,7 @@ function deleteActiveTblPreset(){
   deleteUserTblPreset(activeTblPresetName);
   activeTblPresetName = '';
   renderTblPresetGrid();
+  if(typeof renderArmPresetGrid==="function") renderArmPresetGrid();
 }
 
 $('tbl-preset-modal').addEventListener('click',e=>{if(e.target===$('tbl-preset-modal'))closeSaveTblPresetModal();});
@@ -1060,7 +1114,7 @@ function applyKbdMove(){
 // ====== カメラ・ポート ======
 function getCam(){
   const sw=d2r(gv('arm-sw')),ouA=d2r(gv('ou-ang'));
-  const bx=gv('arm-x'),by=gv('arm-y'),cx=gv('cam-x'),cy=gv('cam-y');
+  const bx=gv('arm-x'),by=gv('arm-y')+gv('ou-piv'),cx=gv('cam-x'),cy=gv('cam-y');
   const co=rot(cx,cy,sw);
   const loc=rot(bx+co.x,by+co.y,ouA);
   return{x:gv('ou-x')+loc.x,y:gv('ou-y')+loc.y};
@@ -1654,10 +1708,18 @@ function _bez(p0,p1,p2,p3,t){
   return u*u*u*p0 + 3*u*u*t*p1 + 3*u*t*t*p2 + t*t*t*p3;
 }
 
+// ===== hinotori 風ディテール用ヘルパー =====
+function _silverGrad(ctx,x0,y0,x1,y1,dark){
+  const g=ctx.createLinearGradient(x0,y0,x1,y1);
+  g.addColorStop(0,    dark?'rgba(240,243,249,0.94)':'rgba(253,254,255,0.97)');
+  g.addColorStop(0.45, dark?'rgba(214,221,233,0.93)':'rgba(237,241,248,0.97)');
+  g.addColorStop(1,    dark?'rgba(172,182,200,0.93)':'rgba(205,213,226,0.97)');
+  return g;
+}
 function drawOU(dark){
   const w=gv('ou-w'),d=gv('ou-d'),piv=gv('ou-piv');
   const ouA=d2r(gv('ou-ang')),sw=d2r(gv('arm-sw'));
-  const abx=gv('arm-x'),aby=gv('arm-y');
+  const abx=gv('arm-x'),aby=gv('arm-y')+piv;  // アームベース中心の基準=OU前面中央（pivぶん前方）
   const armBW=gv('arm-bw')||150,armBH=gv('arm-bh')||500;
   const camX=gv('cam-x'),camY=gv('cam-y');
   const pivW=w2c(gv('ou-x'),gv('ou-y'));
@@ -1669,12 +1731,28 @@ function drawOU(dark){
   ctx.rotate(-ouA);
 
   const bx=-w/2*sc,by=-piv*sc,bw=w*sc,bh=d*sc;
-  const cr=Math.min(bw,bh)*0.06;
+  const cr=Math.min(bw,bh)*0.08;
+  // 本体カート（白〜シルバー）
   ctx.beginPath();ctx.roundRect(bx,by,bw,bh,cr);
-  ctx.fillStyle=dark?'rgba(59,130,246,0.13)':'rgba(59,130,246,0.18)';ctx.fill();
-  ctx.strokeStyle=isSel?'#facc15':'#3b82f6';ctx.lineWidth=2;ctx.stroke();
-  ctx.beginPath();ctx.moveTo(bx,by);ctx.lineTo(bx+bw,by);
-  ctx.strokeStyle='#60a5fa';ctx.lineWidth=3;ctx.stroke();
+  ctx.fillStyle=_silverGrad(ctx,bx,by,bx,by+bh,dark);ctx.fill();
+  // 上部ハイライト
+  ctx.save();ctx.beginPath();ctx.roundRect(bx,by,bw,bh,cr);ctx.clip();
+  const _hg=ctx.createLinearGradient(bx,by,bx,by+bh*0.45);
+  _hg.addColorStop(0,'rgba(255,255,255,0.5)');_hg.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=_hg;ctx.fillRect(bx,by,bw,bh*0.45);ctx.restore();
+  // 外周
+  ctx.beginPath();ctx.roundRect(bx,by,bw,bh,cr);
+  ctx.strokeStyle=isSel?'#facc15':'#3b82f6';ctx.lineWidth=2.5;ctx.stroke();
+  // 前端アクセント（青の太線）
+  ctx.beginPath();ctx.moveTo(bx+cr,by);ctx.lineTo(bx+bw-cr,by);
+  ctx.lineCap='round';ctx.strokeStyle='#2563eb';ctx.lineWidth=Math.max(3,bh*0.012);ctx.stroke();ctx.lineCap='butt';
+  // 後部コンソール（濃いパネル＋通気スリット）
+  const _pw=bw*0.64,_ph=bh*0.17,_prx=-_pw/2,_pry=by+bh-_ph-bh*0.06;
+  ctx.beginPath();ctx.roundRect(_prx,_pry,_pw,_ph,Math.min(_pw,_ph)*0.22);
+  ctx.fillStyle=dark?'rgba(58,68,90,0.5)':'rgba(120,132,154,0.32)';ctx.fill();
+  ctx.strokeStyle=dark?'rgba(120,140,180,0.45)':'rgba(80,92,114,0.35)';ctx.lineWidth=1;ctx.stroke();
+  if(_ph>10){ctx.strokeStyle=dark?'rgba(30,40,60,0.45)':'rgba(120,132,154,0.4)';ctx.lineWidth=1;
+    for(let i=1;i<=3;i++){const _yy=_pry+_ph*i/4;ctx.beginPath();ctx.moveTo(_prx+_pw*0.12,_yy);ctx.lineTo(_prx+_pw*0.88,_yy);ctx.stroke();}}
 
   // 🔮 隠しコマンド: 羽
   if(wingsActive){ drawWings(ctx,bx,by,bw,bh,sc); requestAnimationFrame(()=>render()); }
@@ -1689,14 +1767,73 @@ function drawOU(dark){
     ctx.beginPath();ctx.roundRect(bx-5,by-5,bw+10,bh+10,cr+5);ctx.stroke();
   }
 
+  // 連結アーム（カート支柱 → アームマニフォールド）
+  {
+    const _colx=0,_coly=by+bh*0.45;
+    const _apx=abx*sc,_apy=-aby*sc;
+    ctx.save();ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(_colx,_coly);ctx.lineTo(_apx,_apy);
+    ctx.strokeStyle=dark?'rgba(224,230,242,0.9)':'rgba(228,233,242,0.95)';
+    ctx.lineWidth=Math.max(7,armBW*sc*0.55);ctx.stroke();
+    ctx.strokeStyle=dark?'rgba(150,170,210,0.55)':'rgba(150,162,186,0.55)';
+    ctx.lineWidth=Math.max(2,armBW*sc*0.14);ctx.stroke();
+    ctx.restore();
+    // カート側支柱（円）
+    ctx.beginPath();ctx.arc(_colx,_coly,Math.max(6,armBW*sc*0.4),0,Math.PI*2);
+    ctx.fillStyle=_silverGrad(ctx,_colx-12,_coly-12,_colx+12,_coly+12,dark);ctx.fill();
+    ctx.strokeStyle='#3b82f6';ctx.lineWidth=1.5;ctx.stroke();
+  }
+
   ctx.save();
   ctx.translate(abx*sc,-aby*sc);
   ctx.rotate(-sw);
   const abwPx=armBW*sc,abhPx=armBH*sc;
-  const acr=Math.min(abwPx,abhPx)*0.2;
+  const acr=Math.min(abwPx,abhPx)*0.25;
+  // 4本アーム（マニフォールド片側へ放射）＋ 器具先端
+  {
+    // アームの向き：選択中のロールイン姿勢パターンの「基準角」で確定する。
+    // 旋回(基準±27.8°)中はマニフォールドと一体で回るため、範囲内では反転しない。
+    //  ・直交(perp)  … ルールA：後方(患者と反対)
+    //  ・平行(parallel)… ルールB：連結アーム(OU)側
+    const _pat   = window.armPattern || 'parallel';
+    const _baseSw= (_pat==='perp') ? Math.PI/2 : 0;     // 基準旋回角(直交=90°,平行=0°)
+    const _F  = rot(0,1,ouA);                           // OU前方(患者側, ワールド)
+    const _axB= rot(1,0,ouA+_baseSw);                   // 基準姿勢でのアーム軸(ワールド)
+    let _side;
+    if(_pat==='perp'){
+      _side = -(_axB.x*_F.x + _axB.y*_F.y) > 0 ? 1 : -1;        // ルールA
+    } else {
+      const _Mw = rot(abx,aby,ouA);                              // マニフォールド中心(ワールド, OU基準)
+      _side = (_axB.x*_Mw.x + _axB.y*_Mw.y) > 0 ? -1 : 1;        // ルールB
+    }
+    const _root=_side*abwPx*0.42;
+    const _len=Math.max(abwPx*1.4,14);
+    const _tipx=_side*(abwPx*0.42+_len);
+    const _tr=Math.max(3.5,abwPx*0.18);
+    ctx.lineCap='round';
+    const _aw=Math.max(4,abwPx*0.3);                 // アーム本体の太さ
+    const _ow=_aw+Math.max(2.5,abwPx*0.14);          // 枠線込みの太さ
+    const _olc=dark?'#1e293b':'#475569';             // 枠線色（濃いスレート）
+    for(let i=0;i<4;i++){
+      const _t=(i+0.5)/4, _ay=-abhPx/2+_t*abhPx;
+      // 枠線（下地の濃い線）
+      ctx.beginPath();ctx.moveTo(_root,_ay);ctx.lineTo(_tipx,_ay);
+      ctx.strokeStyle=_olc;ctx.lineWidth=_ow;ctx.stroke();
+      // 本体（明るい線）
+      ctx.beginPath();ctx.moveTo(_root,_ay);ctx.lineTo(_tipx,_ay);
+      ctx.strokeStyle=dark?'rgba(229,233,244,0.97)':'rgba(233,237,245,0.98)';
+      ctx.lineWidth=_aw;ctx.stroke();
+      // 器具先端（枠線付き）
+      ctx.beginPath();ctx.arc(_tipx,_ay,_tr,0,Math.PI*2);
+      ctx.fillStyle=dark?'rgba(44,52,70,0.95)':'rgba(51,65,85,0.92)';ctx.fill();
+      ctx.strokeStyle=_olc;ctx.lineWidth=Math.max(1.5,abwPx*0.07);ctx.stroke();
+    }
+    ctx.lineCap='butt';
+  }
+  // マニフォールド本体（細長バー）
   ctx.beginPath();ctx.roundRect(-abwPx/2,-abhPx/2,abwPx,abhPx,acr);
-  ctx.fillStyle=dark?'rgba(120,180,255,0.22)':'rgba(59,130,246,0.28)';
-  ctx.fill();ctx.strokeStyle='#93c5fd';ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle=_silverGrad(ctx,-abwPx/2,-abhPx/2,abwPx/2,abhPx/2,dark);ctx.fill();
+  ctx.strokeStyle=isSel?'#facc15':'#7fb0e6';ctx.lineWidth=2;ctx.stroke();
   if(gc('show-dims')){
     ctx.fillStyle=dark?'rgba(255,255,255,0.45)':'rgba(0,0,60,0.5)';
     ctx.font='8px sans-serif';ctx.textAlign='left';ctx.textBaseline='top';
@@ -1965,6 +2102,19 @@ function updateStatus(d,cam){
   $('scale-txt').textContent = '1px=100mm';
   $('ou-ang-s').textContent=gv('ou-ang').toFixed(1)+'°';
   $('ou-ang-num').value=gv('ou-ang').toFixed(1);
+  if($('arm-sw-s')){
+    var _asw=gv('arm-sw');
+    var _abase=(typeof ARM_BASE!=='undefined'&&window.armPattern&&ARM_BASE[window.armPattern]!==undefined)?ARM_BASE[window.armPattern]:0;
+    var _arel=_asw-_abase;
+    var _apat=(typeof ARM_PAT_LABEL!=='undefined'&&ARM_PAT_LABEL[window.armPattern])?ARM_PAT_LABEL[window.armPattern]:'';
+    var _alim=(typeof ARM_SWING!=='undefined')?ARM_SWING:27.8;
+    var _atLimit=Math.abs(_arel)>=_alim-0.05;
+    var _ab=$('arm-sw-s');
+    _ab.textContent=(_arel>0?'+':'')+_arel.toFixed(1)+'°';
+    _ab.style.color=_atLimit?'#f59e0b':'#06b6d4';
+    _ab.style.borderColor=_atLimit?'#f59e0b':'#06b6d4';
+    var _ai=$('arm-sw-info'); if(_ai) _ai.textContent='可動±'+_alim.toFixed(1)+'°'+(_apat?'（'+_apat+'）':'');
+  }
   $('cam-pos-s').textContent=`(${cam.x.toFixed(0)}, ${cam.y.toFixed(0)})mm`;
   const tblAng=gv('tbl-ang');
   $('tbl-ang-s').textContent=tblAng.toFixed(1)+'°';
@@ -2031,14 +2181,87 @@ function syncRange(numId,rangeId){
   el.value=v;$(numId).value=v;
 }
 function onOUAngle(){syncNum('ou-ang','ou-ang-num');render();}
-function onArmSwivel(){syncNum('arm-sw','arm-sw-num');render();}
+// ===== ロールイン姿勢パターン（直交/平行）と旋回制限 =====
+var ARM_SWING = 27.8;                         // 基準から左右の最大旋回角(°)
+var ARM_BASE  = { parallel:0, perp:90 };      // 各パターンの基準旋回角(°)
+var ARM_PAT_LABEL = { parallel:'肺・上腹部・骨盤部', perp:'食道・腎臓・下腹部' }; // 表示用ラベル
+window.armPattern = window.armPattern || 'parallel';
+
+function setArmPattern(p){
+  if(!ARM_BASE.hasOwnProperty(p)) return;
+  window.armPattern = p;
+  var base = ARM_BASE[p];
+  var lo = base - ARM_SWING, hi = base + ARM_SWING;
+  var sw = document.getElementById('arm-sw'), swn = document.getElementById('arm-sw-num');
+  // 現在値を min/max 変更前に読む（range要素は min 設定時に value を即クランプするため）
+  var cur = parseFloat((sw||{value:base}).value); if(isNaN(cur)) cur = base;
+  if(cur < lo || cur > hi) cur = base;
+  if(sw){ sw.min = lo; sw.max = hi; sw.value = cur; }   // スライダーは絶対角(位置用)
+  if(swn){ swn.min = -ARM_SWING; swn.max = ARM_SWING; } // 数値入力は基準0°の相対角
+  // ボタンのアクティブ表示
+  var bp = document.getElementById('arm-pat-par'), bo = document.getElementById('arm-pat-perp');
+  if(bp) bp.classList.toggle('btn-active', p==='parallel');
+  if(bo) bo.classList.toggle('btn-active', p==='perp');
+  // 可動範囲表示（相対）
+  var rg = document.getElementById('arm-sw-range');
+  if(rg) rg.textContent = '可動 ±'+ARM_SWING.toFixed(1)+'°';
+  if(typeof checkHiddenArm==='function') checkHiddenArm();
+  onArmSwivel();
+}
+function _armClamp(v){
+  var sw = document.getElementById('arm-sw');
+  var lo = parseFloat(sw.min), hi = parseFloat(sw.max);
+  if(isNaN(lo)) lo=-180; if(isNaN(hi)) hi=180;
+  return Math.max(lo, Math.min(hi, v));
+}
+function armSwStep(dir){
+  var sw = document.getElementById('arm-sw');
+  sw.value = _armClamp((parseFloat(sw.value)||0) + 0.5*dir);
+  onArmSwivel(); if(typeof checkHiddenArm==='function') checkHiddenArm();
+}
+function setArmSwRel(side){
+  var base = ARM_BASE[window.armPattern] || 0;
+  var sw = document.getElementById('arm-sw');
+  sw.value = _armClamp(base + side*ARM_SWING);
+  onArmSwivel(); if(typeof checkHiddenArm==='function') checkHiddenArm();
+}
+// アームベース中心XのＸ符号を反転（左右反転）
+function flipArmX(){
+  var el = document.getElementById('arm-x');
+  if(!el) return;
+  el.value = -(parseFloat(el.value)||0);
+  render();
+}
+function initArmPattern(){
+  var sw = parseFloat((document.getElementById('arm-sw')||{value:0}).value)||0;
+  var p = Math.abs(Math.sin(sw*Math.PI/180)) > Math.SQRT1_2 ? 'perp' : 'parallel';
+  setArmPattern(p);
+}
+function _armRelText(rel){ return (rel>0?'+':'')+rel.toFixed(1)+'°'; }
+// arm-sw(スライダー)は絶対角を保持。数値入力・モバイル表示は基準0°の相対角で表示する。
+function onArmSwivel(){
+  var sw=document.getElementById('arm-sw'); if(!sw) return;
+  var abs=_armClamp(parseFloat(sw.value)||0); sw.value=abs;
+  var base=(typeof ARM_BASE!=='undefined'&&ARM_BASE[window.armPattern]!==undefined)?ARM_BASE[window.armPattern]:0;
+  var rel=abs-base;
+  var num=document.getElementById('arm-sw-num'); if(num) num.value=rel.toFixed(1);
+  var disp=document.getElementById('sp-arm-angle'); if(disp) disp.textContent=_armRelText(rel);
+  render();
+}
 function onTableAngle(){syncNum('tbl-ang','tbl-ang-num');render();}
 function onTiltAngle(){syncNum('tilt-ang','tilt-ang-num');render();}
 function onTiltLRAngle(){syncNum('tilt-lr-ang','tilt-lr-ang-num');render();}
 function onTiltLRAngleNum(){syncRange('tilt-lr-ang-num','tilt-lr-ang');render();}
 function onGuideAngle(){syncNum('gl-ang','gl-ang-num');render();}
 function onOUAngleNum(){syncRange('ou-ang-num','ou-ang');render();}
-function onArmSwivelNum(){syncRange('arm-sw-num','arm-sw');render();}
+function onArmSwivelNum(){
+  var num=document.getElementById('arm-sw-num'); if(!num) return;
+  var rel=parseFloat(num.value); if(isNaN(rel)) return;
+  rel=Math.max(-ARM_SWING,Math.min(ARM_SWING,rel));
+  var base=(ARM_BASE[window.armPattern]!==undefined)?ARM_BASE[window.armPattern]:0;
+  var sw=document.getElementById('arm-sw'); if(sw) sw.value=_armClamp(base+rel);
+  onArmSwivel();
+}
 function onTableAngleNum(){syncRange('tbl-ang-num','tbl-ang');render();}
 function onTiltAngleNum(){syncRange('tilt-ang-num','tilt-ang');render();}
 function onGuideAngleNum(){syncRange('gl-ang-num','gl-ang');render();}
@@ -2063,7 +2286,7 @@ function zoomStep(factor){
 function alignOU(){
   const port=getPort();
   const sw=d2r(gv('arm-sw')),ouA=d2r(gv('ou-ang'));
-  const bx=gv('arm-x'),by=gv('arm-y'),cx=gv('cam-x'),cy=gv('cam-y');
+  const bx=gv('arm-x'),by=gv('arm-y')+gv('ou-piv'),cx=gv('cam-x'),cy=gv('cam-y');
   const co=rot(cx,cy,sw);
   const loc=rot(bx+co.x,by+co.y,ouA);
   $('ou-x').value=(port.x-loc.x).toFixed(1);
@@ -2592,7 +2815,9 @@ function applyPresetData(d){
   $('gl-ang-num').value=(d.glAng||0).toFixed(1);
   if(d.extraPorts){extraPorts=d.extraPorts;nextPortId=extraPorts.reduce((m,p)=>Math.max(m,p.id),0)+1;renderPortList();}
   if(d.paintStrokes){paintStrokes=d.paintStrokes;}
-  if(d.activeTblPreset!==undefined){activeTblPresetName=d.activeTblPreset;renderTblPresetGrid();}
+  if(d.activeTblPreset!==undefined){activeTblPresetName=d.activeTblPreset;renderTblPresetGrid();
+  if(typeof renderArmPresetGrid==="function") renderArmPresetGrid();}
+  if(typeof initArmPattern==='function') initArmPattern();
   render();
 }
 function loadPresets(){return JSON.parse(localStorage.getItem('hinotori_presets')||'[]');}
@@ -2826,9 +3051,11 @@ function toggleDrawer(){
 
 // 初期化
 renderTblPresetGrid();
+  if(typeof renderArmPresetGrid==="function") renderArmPresetGrid();
 renderPresetList();
 renderPortList();
 initPaintUI();
+initArmPattern();
 resize();
 window.addEventListener('load',()=>{resize();setTimeout(()=>{pushState();updateUndoBtn();},200);});
 
@@ -3026,12 +3253,12 @@ cvs.addEventListener('touchend',e=>{
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
       <div style="color:#06b6d4;font-size:10px;font-weight:700;margin-bottom:2px;">アームベース</div>
       <div style="display:flex;gap:6px;align-items:center;">
-        <div class="sp-btn sp-rot-btn" onclick="spArmRotate(window._rotStep||1)" style="width:54px;height:54px;font-size:18px;border-color:#06b6d4;flex-direction:column;gap:1px;"><span>↺</span><span style="font-size:9px;color:#06b6d4;">左回転</span></div>
-        <div style="width:46px;height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
+        <div class="sp-btn sp-rot-btn" onclick="spArmRotate(1)" style="width:54px;height:54px;font-size:18px;border-color:#06b6d4;flex-direction:column;gap:1px;"><span>↺</span><span style="font-size:9px;color:#06b6d4;">左回転</span></div>
+        <div style="width:52px;height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
           <div id="sp-arm-angle" style="color:#06b6d4;font-size:12px;font-weight:700;min-width:40px;text-align:center;">0°</div>
-          <div style="color:#5a6480;font-size:9px;">角度</div>
+          <div class="sp-btn" onclick="setArmSwRel(0)" title="この姿勢の0°(基準)に戻す" style="width:50px;height:24px;font-size:9px;border-color:#06b6d4;color:#06b6d4;gap:2px;">⟲ 基準</div>
         </div>
-        <div class="sp-btn sp-rot-btn" onclick="spArmRotate(-(window._rotStep||1))" style="width:54px;height:54px;font-size:18px;border-color:#06b6d4;flex-direction:column;gap:1px;"><span>↻</span><span style="font-size:9px;color:#06b6d4;">右回転</span></div>
+        <div class="sp-btn sp-rot-btn" onclick="spArmRotate(-1)" style="width:54px;height:54px;font-size:18px;border-color:#06b6d4;flex-direction:column;gap:1px;"><span>↻</span><span style="font-size:9px;color:#06b6d4;">右回転</span></div>
       </div>
       <div style="display:flex;gap:6px;margin-top:4px;">
         <div class="sp-btn" onclick="spToggleStep('arm','slow')" id="spARSlow" style="width:72px;height:32px;font-size:9px;white-space:nowrap;">微調整 0.5°</div>
@@ -3236,7 +3463,6 @@ cvs.addEventListener('touchend',e=>{
     ae.value = nv; if(an) an.value = nv.toFixed(1);
     render();
     spUpdateRotAngle();
-    spUpdateRotAngle();
   }
   window.spRotate = spRotate;
   
@@ -3301,10 +3527,6 @@ cvs.addEventListener('touchend',e=>{
         if(xe2)xe2.value=(_spTblX+dx/sc).toFixed(1);
         if(ye2)ye2.value=(_spTblY-dy/sc).toFixed(1);
         render();
-      } else if(_mode==='ou'){
-        var nv=Math.max(-180,Math.min(180,_spAng+dx*0.4));
-        var ae=document.getElementById('ou-ang'),an=document.getElementById('ou-ang-num');
-        if(ae){ae.value=nv;if(an)an.value=nv.toFixed(1);render();}
       }
     },{passive:false});
 
@@ -3548,6 +3770,31 @@ function spMeasStep(dir){
   render();
 }
 
+// ===== 下部操作UIをステータスバーの上に配置（重なり防止） =====
+// モードバー以外のパッド類は body 直下でビューポート基準配置のため、
+// ステータスバー(高さは行折り返しや縦横で変動)の実測値に合わせて bottom を動的に設定する。
+var SP_LAYOUT_IDS = ['sp-wrap','sp-dpad','sp-meas-dpad','sp-rotpad','sp-trotpad','sp-armpad'];
+function spLayoutFix(){
+  var status = document.querySelector('.status');
+  if(!status) return;
+  var h = status.offsetHeight || 0;
+  // 横向き(コンパクト)時は専用のメディアクエリ配置に任せ、インライン指定は外す
+  var landscapeCompact = window.matchMedia('(orientation:landscape) and (max-height:500px)').matches;
+  SP_LAYOUT_IDS.forEach(function(id){
+    var el = document.getElementById(id);
+    if(!el) return;
+    if(landscapeCompact){ el.style.removeProperty('bottom'); }
+    else { el.style.bottom = (h + 8) + 'px'; }
+  });
+}
+window.addEventListener('resize', spLayoutFix);
+window.addEventListener('orientationchange', function(){ setTimeout(spLayoutFix, 120); });
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', function(){ spLayoutFix(); setTimeout(spLayoutFix, 200); });
+} else {
+  spLayoutFix(); setTimeout(spLayoutFix, 200);
+}
+
 function spToggleUI(){
   var wrap = document.getElementById('sp-wrap');
   var btn  = document.getElementById('smb-off');
@@ -3616,6 +3863,7 @@ function applyOUCamPreset(idx){
   var p = presets[idx]; if(!p) return;
   var s = function(id,v){ var el=document.getElementById(id); if(el) el.value=v; };
   OU_CAM_FIELDS.forEach(function(id){ if(p.data[id]!==undefined) s(id, p.data[id]); });
+  if(typeof initArmPattern==='function') initArmPattern();
   render();
 }
 
@@ -3774,8 +4022,6 @@ function spSetStepFromCtrl(s){
     _armRotStep=s;
   }
   updateDpadCorners(m);
-
-  if(typeof updateDpadCorners!=='undefined') updateDpadCorners(m);
 }
 
 function showStepCtrl(m){
@@ -3871,27 +4117,123 @@ function spArmRotate(delta){
   var ae=document.getElementById('arm-sw'), an=document.getElementById('arm-sw-num');
   if(!ae) return;
   var step = (typeof _armRotStep!=='undefined') ? _armRotStep : 1;
-  var nv=Math.max(-180,Math.min(180,parseFloat(ae.value||0)+(delta>0?step:-step)));
+  var nv=parseFloat(ae.value||0)+(delta>0?step:-step);
+  nv=(typeof _armClamp==='function')?_armClamp(nv):Math.max(-180,Math.min(180,nv));
   ae.value=nv; if(an) an.value=nv.toFixed(1);
   var disp=document.getElementById('sp-arm-angle');
-  if(disp) disp.textContent=nv.toFixed(1)+'°';
+  if(disp) disp.textContent=parseFloat(nv).toFixed(1)+'°';
   if(typeof onArmSwivel==='function') onArmSwivel();
 }
 
-var _armRotStep = 1;
-function spArmRotate(delta){
-  var ae=document.getElementById('arm-sw'), an=document.getElementById('arm-sw-num');
-  if(!ae) return;
-  var step = typeof _armRotStep!=='undefined' ? _armRotStep : 1;
-  var nv=Math.max(-180,Math.min(180,parseFloat(ae.value||0)+delta*step));
-  ae.value=nv; if(an) an.value=nv.toFixed(1);
-  var disp=document.getElementById('sp-arm-angle');
-  if(disp) disp.textContent=nv.toFixed(1)+'°';
+// ===== アームベース・カメラ プリセット =====
+var ARM_PRESET_KEY = 'hinotori_arm_presets_v1';
+
+function loadArmPresets(){
+  return JSON.parse(localStorage.getItem(ARM_PRESET_KEY)||'[]');
+}
+function saveArmPresets(presets){
+  localStorage.setItem(ARM_PRESET_KEY, JSON.stringify(presets));
+}
+function gvEl(id){ var el=document.getElementById(id); return el?parseFloat(el.value)||0:0; }
+function getCurrentArmSettings(){
+  return {
+    armSw:  gvEl('arm-sw'),
+    armX:   gvEl('arm-x'),
+    armY:   gvEl('arm-y'),
+    armBw:  gvEl('arm-bw'),
+    armBh:  gvEl('arm-bh'),
+    camX:   gvEl('cam-x'),
+    camY:   gvEl('cam-y'),
+  };
+}
+function sv(id,v){ var el=document.getElementById(id); if(el) el.value=v; }
+function applyArmPreset(p){
+  if(p.armSw  !== undefined){ sv('arm-sw', p.armSw); sv('arm-sw-num', p.armSw); }
+  if(p.armX   !== undefined){ sv('arm-x',  p.armX); }
+  if(p.armY   !== undefined){ sv('arm-y',  p.armY); }
+  if(p.armBw  !== undefined){ sv('arm-bw', p.armBw); }
+  if(p.armBh  !== undefined){ sv('arm-bh', p.armBh); }
+  if(p.camX   !== undefined){ sv('cam-x',  p.camX); }
+  if(p.camY   !== undefined){ sv('cam-y',  p.camY); }
+  if(typeof initArmPattern==='function') initArmPattern();
   if(typeof onArmSwivel==='function') onArmSwivel();
+  if(typeof render==='function') render();
+  renderArmPresetGrid();
+}
+function renderArmPresetGrid(){
+  window.renderArmPresetGrid = renderArmPresetGrid;
+  var presets = loadArmPresets();
+  var grid = document.getElementById('arm-preset-grid');
+  if(!grid) return;
+  if(!presets.length){
+    grid.innerHTML = '<div style="font-size:10px;color:var(--muted);grid-column:1/-1;">保存済みプリセットなし</div>';
+    return;
+  }
+  var cur = JSON.stringify(getCurrentArmSettings());
+  grid.innerHTML = presets.map(function(p, i){
+    var isActive = JSON.stringify({armSw:p.armSw,armX:p.armX,armY:p.armY,armBw:p.armBw,armBh:p.armBh,camX:p.camX,camY:p.camY}) === cur;
+    return '<div style="display:flex;gap:2px;align-items:stretch;">'
+      + '<button class="arm-preset-btn'+(isActive?' btn-active':'')+'" data-idx="'+i+'" style="flex:1;">'
+      + '<div style="font-weight:700;">'+p.name+'</div>'
+      + '<div style="font-size:9px;color:var(--muted);">旋回'+p.armSw+'° / CAM('+p.camX+','+p.camY+')</div>'
+      + '</button>'
+      + '<button class="arm-preset-btn" data-del="'+i+'" style="width:28px;padding:2px;border-color:#ef4444;color:#ef4444;flex-shrink:0;">🗑</button>'
+      + '</div>';
+  }).join('');
+  // イベント委任
+  Array.from(grid.querySelectorAll('[data-idx]')).forEach(function(btn){
+    btn.addEventListener('click', function(){
+      applyArmPreset(loadArmPresets()[parseInt(this.dataset.idx)]);
+    });
+  });
+  Array.from(grid.querySelectorAll('[data-del]')).forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      e.preventDefault();
+      var presets2 = loadArmPresets();
+      var i = parseInt(this.getAttribute('data-del'));
+      if(i < 0 || i >= presets2.length) return;
+      var name = presets2[i].name;
+      presets2.splice(i, 1);
+      saveArmPresets(presets2);
+      renderArmPresetGrid();
+    });
+  });
+}
+function openSaveArmPresetModal(){
+  var cur = getCurrentArmSettings();
+  document.getElementById('arm-preset-name').value = '';
+  document.getElementById('arm-preset-dim-preview').textContent =
+    '旋回角: '+cur.armSw+'° / CAM X:'+cur.camX+' Y:'+cur.camY+'mm';
+  document.getElementById('arm-preset-modal').classList.add('show');
+}
+function closeSaveArmPresetModal(){
+  document.getElementById('arm-preset-modal').classList.remove('show');
+}
+function doSaveArmPreset(){
+  var name = document.getElementById('arm-preset-name').value.trim();
+  if(!name){ alert('プリセット名を入力してください'); return; }
+  var presets = loadArmPresets();
+  var cur = getCurrentArmSettings();
+  cur.name = name;
+  // 同名上書き
+  var idx = presets.findIndex(function(p){ return p.name===name; });
+  if(idx >= 0) presets[idx] = cur; else presets.push(cur);
+  saveArmPresets(presets);
+  closeSaveArmPresetModal();
+  renderArmPresetGrid();
+}
+function deleteLastArmPreset(){
+  var presets = loadArmPresets();
+  if(!presets.length) return;
+  var name = prompt('削除するプリセット名を入力', presets[presets.length-1].name);
+  if(!name) return;
+  saveArmPresets(presets.filter(function(p){ return p.name!==name; }));
+  renderArmPresetGrid();
 }
 function resetToInitial(){
   // カスタム初期設定があればそちらを使用
-  if(loadCustomInitial()){ render(); return; }
+  if(loadCustomInitial()){ if(typeof initArmPattern==='function') initArmPattern(); render(); return; }
   // なければデフォルト値
   var s = function(id, val){ var el = document.getElementById(id); if(el) el.value = val; };
   // OU
@@ -3904,7 +4246,7 @@ function resetToInitial(){
   // アームベース
   s('arm-sw',     0); s('arm-sw-num', 0);
   s('arm-x',    550);
-  s('arm-y',   1200);
+  s('arm-y',    640);
   s('arm-bw',   330);
   s('arm-bh',  1000);
   s('cam-x',     0);
@@ -3934,6 +4276,7 @@ function resetToInitial(){
   s('rollin-arrow-len', 100);
   var bgMode = document.getElementById('bg-mode');
   if(bgMode){ bgMode.value = 'light'; changeBG(); }
+  if(typeof initArmPattern==='function') initArmPattern();
   // 再描画
   render();
 }
