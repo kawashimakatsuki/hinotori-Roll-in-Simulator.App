@@ -2079,11 +2079,11 @@ function drawRollinAngle(dark){
   ctx.lineWidth=1.5;ctx.setLineDash([5,3]);ctx.stroke();ctx.setLineDash([]);
   const ax=Math.cos(ouFwdC)*arrLen,ay=Math.sin(ouFwdC)*arrLen;
   ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(ax,ay);
-  ctx.strokeStyle='#60a5fa';ctx.lineWidth=2.5;ctx.stroke();
+  ctx.strokeStyle='#a78bfa';ctx.lineWidth=2.5;ctx.stroke();
   ctx.beginPath();ctx.moveTo(ax,ay);
   ctx.lineTo(ax-Math.cos(ouFwdC)*10-Math.sin(ouFwdC)*5,ay-Math.sin(ouFwdC)*10+Math.cos(ouFwdC)*5);
   ctx.lineTo(ax-Math.cos(ouFwdC)*10+Math.sin(ouFwdC)*5,ay-Math.sin(ouFwdC)*10-Math.cos(ouFwdC)*5);
-  ctx.closePath();ctx.fillStyle='#60a5fa';ctx.fill();
+  ctx.closePath();ctx.fillStyle='#a78bfa';ctx.fill();
   // 弧の描画
   // 90°以下：tblAxisC→ouFwdC の間
   // 90°超え ：ouFwdC を軸に鏡像反転、補角(180°-absAng)を表示
@@ -3688,7 +3688,7 @@ function slStep(id, mn, mx, step, dir){
 // ===== カスタム初期設定 =====
 var INIT_FIELDS  = ["ou-w", "ou-d", "ou-piv", "ou-ang", "ou-ang-num", "ou-x", "ou-y", "arm-sw", "arm-sw-num", "arm-x", "arm-y", "arm-bw", "arm-bh", "cam-x", "cam-y", "gl-ang", "gl-ang-num", "gl-len", "tbl-w", "tbl-d", "tbl-ang", "tbl-ang-num", "tbl-x", "tbl-y", "port-x", "port-y", "port-h", "tilt-ang", "tilt-ang-num", "tilt-lr-ang", "tilt-lr-ang-num", "rollin-arrow-len"];
 var INIT_SELECTS = ["tilt-type", "tilt-lr-type", "bg-mode"];
-var INIT_CHECKS  = ["show-guide"];
+var INIT_CHECKS  = ["show-guide", "show-grid", "show-dims", "show-rollin"];
 var INIT_KEY     = 'hinotori_init_v1';
 
 function saveAsInitial(){
@@ -3705,6 +3705,9 @@ function saveAsInitial(){
     var el = document.getElementById(id);
     if(el) data[id] = el.checked;
   });
+  // オブジェクト配置・追加ポートも保存
+  try{ data.customObjs = JSON.parse(JSON.stringify(customObjs)); }catch(e){ data.customObjs = []; }
+  try{ data.extraPorts = JSON.parse(JSON.stringify(extraPorts)); }catch(e){ data.extraPorts = []; }
   try{
     localStorage.setItem(INIT_KEY, JSON.stringify(data));
     alert('現在の設定をデフォルトとして保存しました。\n次回から「🔄 デフォルト」ボタンでこの値に戻ります。');
@@ -3728,6 +3731,17 @@ function loadCustomInitial(){
       var el = document.getElementById(id);
       if(el && data[id]!==undefined) el.checked = data[id];
     });
+    // オブジェクト配置・追加ポートを復元
+    if(Array.isArray(data.customObjs)){
+      customObjs = JSON.parse(JSON.stringify(data.customObjs));
+      nextObjId = customObjs.reduce(function(m,o){ return Math.max(m, o.id||0); }, 0) + 1;
+      if(typeof renderObjList==='function') renderObjList();
+    }
+    if(Array.isArray(data.extraPorts)){
+      extraPorts = JSON.parse(JSON.stringify(data.extraPorts));
+      nextPortId = extraPorts.reduce(function(m,p){ return Math.max(m, p.id||0); }, 0) + 1;
+      if(typeof renderPortList==='function') renderPortList();
+    }
     if(data['bg-mode']) changeBG();
     return true;
   } catch(e){ return false; }
