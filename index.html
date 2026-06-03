@@ -2307,7 +2307,7 @@ function _armClamp(v){
 }
 function armSwStep(dir){
   var sw = document.getElementById('arm-sw');
-  sw.value = _armClamp((parseFloat(sw.value)||0) + 0.5*dir);
+  sw.value = _armClamp((parseFloat(sw.value)||0) + 0.1*dir);
   onArmSwivel(); if(typeof checkHiddenArm==='function') checkHiddenArm();
 }
 function setArmSwRel(side){
@@ -3379,7 +3379,7 @@ cvs.addEventListener('touchend',e=>{
         <div class="sp-btn sp-rot-btn" id="spARR" style="width:54px;height:54px;font-size:18px;border-color:#06b6d4;flex-direction:column;gap:1px;"><span>↻</span><span style="font-size:9px;color:#06b6d4;">右回転</span></div>
       </div>
       <div style="display:flex;gap:6px;margin-top:4px;">
-        <div class="sp-btn" onclick="spToggleStep('arm','slow')" id="spARSlow" style="width:72px;height:32px;font-size:9px;white-space:nowrap;">微調整 0.5°</div>
+        <div class="sp-btn" onclick="spToggleStep('arm','slow')" id="spARSlow" style="width:72px;height:32px;font-size:9px;white-space:nowrap;">微調整 0.1°</div>
         <div class="sp-btn" onclick="spToggleStep('arm','mid')"  id="spARMid"  style="width:42px;height:32px;font-size:9px;border-color:#06b6d4;color:#06b6d4;">1°</div>
         <div class="sp-btn" onclick="spToggleStep('arm','fast')" id="spARFast" style="width:72px;height:32px;font-size:9px;white-space:nowrap;">大回転 5°</div>
       </div>
@@ -4080,7 +4080,7 @@ var _tblRotStep = 1;  // 台の現在のステップ
 
 function spToggleStep(target, mode){
   // target: 'ou' or 'tbl', mode: 'slow'(0.5) / 'mid'(1) / 'fast'(5)
-  var steps = {slow:0.5, mid:1, fast:5};
+  var steps = (target==='arm') ? {slow:0.1, mid:1, fast:5} : {slow:0.5, mid:1, fast:5};
   var step = steps[mode];
   if(target==='ou'){
     // 同じボタンを再タップでOFF→1°に戻る
@@ -4100,7 +4100,7 @@ function spToggleStep(target, mode){
 function updateRotStepUI(target, step){
   var prefix = target==='ou' ? 'spR' : target==='tbl' ? 'spTR' : 'spAR';
   var color  = target==='ou' ? '#a78bfa' : target==='tbl' ? '#60a5fa' : '#06b6d4';
-  var map = {slow:0.5, mid:1, fast:5};
+  var map = (target==='arm') ? {slow:0.1, mid:1, fast:5} : {slow:0.5, mid:1, fast:5};
   ['Slow','Mid','Fast'].forEach(function(k){
     var el = document.getElementById(prefix+k);
     if(!el) return;
@@ -4122,10 +4122,14 @@ function bindHold(el, fn){
     if(e.cancelable) e.preventDefault();
     e.stopPropagation();
     el._holdFn();
+    clearTimeout(el._holdDelay);
     clearInterval(el._holdTimer);
-    el._holdTimer = setInterval(function(){ if(el._holdFn) el._holdFn(); }, 100);
+    // 単発タップは1ステップのみ。長押し(350ms)で連続実行に移行（微調整時の過剰反応を防止）
+    el._holdDelay = setTimeout(function(){
+      el._holdTimer = setInterval(function(){ if(el._holdFn) el._holdFn(); }, 100);
+    }, 350);
   };
-  var stop = function(){ clearInterval(el._holdTimer); el._holdTimer = null; };
+  var stop = function(){ clearTimeout(el._holdDelay); el._holdDelay = null; clearInterval(el._holdTimer); el._holdTimer = null; };
   el.addEventListener('touchstart', start, {passive:false});
   el.addEventListener('touchend',   stop,  {passive:false});
   el.addEventListener('touchcancel',stop,  {passive:false});
