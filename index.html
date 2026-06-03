@@ -639,7 +639,7 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
         <div class="f"><label>許容範囲 直径 (mm)</label><input type="number" id="tol" value="50" min="1" max="200" oninput="render()"></div>
         <div class="f"><label><input type="checkbox" id="show-grid" checked onchange="render()"> グリッド表示 (100mm)</label></div>
         <div class="f"><label><input type="checkbox" id="show-dims" checked onchange="render()"> 文字ラベル表示（OU/ARM BASE/CAM/手術台名/CAM PORT/ポート名）</label></div>
-        <div class="f"><label><input type="checkbox" id="show-rollin" checked onchange="render()"> ロールイン角表記</label></div>
+        <div class="f"><label><input type="checkbox" id="show-rollin" checked onchange="render()"> ロールイン角・OU回転軸表示</label></div>
         <div class="f"><label>ロールイン角 矢印の長さ (px)</label><input type="number" id="rollin-arrow-len" value="100" min="10" max="300" oninput="render()"></div>
         <div class="f"><label>背景色</label>
           <select id="bg-mode" onchange="changeBG()">
@@ -1833,17 +1833,54 @@ function drawOU(dark){
   ctx.fillStyle=_hg;ctx.fillRect(bx,by,bw,bh*0.45);ctx.restore();
   // 外周
   ctx.beginPath();ctx.roundRect(bx,by,bw,bh,cr);
-  ctx.strokeStyle=isSel?'#facc15':(dark?'#1e293b':'#475569');ctx.lineWidth=2.5;ctx.stroke();
+  ctx.strokeStyle=isSel?'#facc15':'#000';ctx.lineWidth=2;ctx.stroke();
   // 前端アクセント（青の太線）
   ctx.beginPath();ctx.moveTo(bx+cr,by);ctx.lineTo(bx+bw-cr,by);
   ctx.lineCap='round';ctx.strokeStyle=dark?'#1e293b':'#475569';ctx.lineWidth=Math.max(3,bh*0.012);ctx.stroke();ctx.lineCap='butt';
-  // 後部コンソール（濃いパネル＋通気スリット）
-  const _pw=bw*0.64,_ph=bh*0.17,_prx=-_pw/2,_pry=by+bh-_ph-bh*0.06;
-  ctx.beginPath();ctx.roundRect(_prx,_pry,_pw,_ph,Math.min(_pw,_ph)*0.22);
-  ctx.fillStyle=dark?'rgba(58,68,90,0.5)':'rgba(120,132,154,0.32)';ctx.fill();
-  ctx.strokeStyle=dark?'rgba(120,140,180,0.45)':'rgba(80,92,114,0.35)';ctx.lineWidth=1;ctx.stroke();
-  if(_ph>10){ctx.strokeStyle=dark?'rgba(30,40,60,0.45)':'rgba(120,132,154,0.4)';ctx.lineWidth=1;
-    for(let i=1;i<=3;i++){const _yy=_pry+_ph*i/4;ctx.beginPath();ctx.moveTo(_prx+_pw*0.12,_yy);ctx.lineTo(_prx+_pw*0.88,_yy);ctx.stroke();}}
+  // ===== 操作モニタ＋ハンドル（OU後端＝操作者側）。大きさはOU幅基準の一定比率 =====
+  {
+    const _hmS  = bw;                         // OU幅基準
+    const _neckW= _hmS*0.07;                  // 取付ネック幅
+    const _neckH= Math.max(3,bh*0.035);       // 取付ネック奥行
+    const _ny0  = by+bh;                      // OU後端
+    const _monW = _hmS*0.30;                  // モニタ幅
+    const _monH = _monW*0.62;                 // モニタ高さ
+    const _monY0= _ny0+_neckH;                // モニタ手前端
+    const _hbW  = _hmS*0.52;                  // ハンドル全幅
+    const _hbT  = Math.max(3,_hmS*0.028);     // ハンドル太さ
+    const _hbY  = _monY0+_monH+_hbT*0.7;      // ハンドル位置（モニタ奥側）
+    // 取付ネック
+    ctx.beginPath();ctx.roundRect(-_neckW/2,_ny0-1,_neckW,_neckH+2,_neckW*0.3);
+    ctx.fillStyle=dark?'rgba(120,132,154,0.7)':'rgba(150,162,186,0.85)';ctx.fill();
+    ctx.strokeStyle=dark?'#1e293b':'#475569';ctx.lineWidth=1.5;ctx.stroke();
+    // グリップ支柱（左右、モニタ→ハンドル）
+    ctx.save();ctx.lineCap='round';
+    ctx.strokeStyle=dark?'rgba(150,165,200,0.6)':'rgba(150,162,186,0.75)';ctx.lineWidth=Math.max(2,_hbT*0.5);
+    ctx.beginPath();
+    ctx.moveTo(-_monW*0.32,_monY0+_monH);ctx.lineTo(-_monW*0.32,_hbY);
+    ctx.moveTo(_monW*0.32,_monY0+_monH);ctx.lineTo(_monW*0.32,_hbY);ctx.stroke();
+    ctx.restore();
+    // 操作モニタ本体（濃いパネル）
+    ctx.beginPath();ctx.roundRect(-_monW/2,_monY0,_monW,_monH,Math.min(_monW,_monH)*0.12);
+    ctx.fillStyle=dark?'#0b1220':'#2b3445';ctx.fill();
+    ctx.strokeStyle=dark?'#1e293b':'#475569';ctx.lineWidth=2;ctx.stroke();
+    // 画面の光沢
+    ctx.save();ctx.beginPath();ctx.roundRect(-_monW/2,_monY0,_monW,_monH,Math.min(_monW,_monH)*0.12);ctx.clip();
+    const _sg=ctx.createLinearGradient(-_monW/2,_monY0,-_monW/2,_monY0+_monH);
+    _sg.addColorStop(0,'rgba(120,160,220,0.35)');_sg.addColorStop(0.5,'rgba(120,160,220,0.06)');_sg.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=_sg;ctx.fillRect(-_monW/2,_monY0,_monW,_monH);ctx.restore();
+    // ハンドルバー（中央は明色／両端グリップは黒）
+    ctx.save();ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(-_hbW/2,_hbY);ctx.lineTo(_hbW/2,_hbY);
+    ctx.strokeStyle=dark?'#1e293b':'#475569';ctx.lineWidth=_hbT+3;ctx.stroke();
+    ctx.strokeStyle=dark?'rgba(214,222,238,0.92)':'rgba(222,228,240,0.96)';ctx.lineWidth=_hbT;ctx.stroke();
+    const _grip=_hbW*0.26;                    // 両端グリップ長
+    ctx.strokeStyle='#111827';ctx.lineWidth=_hbT+1.5;
+    ctx.beginPath();
+    ctx.moveTo(-_hbW/2,_hbY);ctx.lineTo(-_hbW/2+_grip,_hbY);
+    ctx.moveTo(_hbW/2,_hbY);ctx.lineTo(_hbW/2-_grip,_hbY);ctx.stroke();
+    ctx.restore();
+  }
 
   // 🔮 隠しコマンド: 羽
   if(wingsActive){ drawWings(ctx,bx,by,bw,bh,sc); requestAnimationFrame(()=>render()); }
@@ -1862,16 +1899,18 @@ function drawOU(dark){
     const _colx=0,_coly=by+bh*0.45;
     const _apx=abx*sc,_apy=-aby*sc;
     ctx.save();ctx.lineCap='round';
+    const _cw=Math.max(7,armBW*sc*0.55);
     ctx.beginPath();ctx.moveTo(_colx,_coly);ctx.lineTo(_apx,_apy);
-    ctx.strokeStyle=dark?'rgba(224,230,242,0.9)':'rgba(228,233,242,0.95)';
-    ctx.lineWidth=Math.max(7,armBW*sc*0.55);ctx.stroke();
-    ctx.strokeStyle=dark?'rgba(150,170,210,0.55)':'rgba(150,162,186,0.55)';
-    ctx.lineWidth=Math.max(2,armBW*sc*0.14);ctx.stroke();
+    ctx.strokeStyle='#000';                                    // 黒枠（統一）
+    ctx.lineWidth=_cw;ctx.stroke();
+    ctx.beginPath();ctx.moveTo(_colx,_coly);ctx.lineTo(_apx,_apy);
+    ctx.strokeStyle=dark?'rgba(229,233,244,0.97)':'#ffffff';   // 白本体
+    ctx.lineWidth=Math.max(2,_cw-4);ctx.stroke();
     ctx.restore();
     // カート側支柱（円）
     ctx.beginPath();ctx.arc(_colx,_coly,Math.max(6,armBW*sc*0.4),0,Math.PI*2);
-    ctx.fillStyle=_silverGrad(ctx,_colx-12,_coly-12,_colx+12,_coly+12,dark);ctx.fill();
-    ctx.strokeStyle=dark?'#1e293b':'#475569';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle=dark?'#e8edf5':'#ffffff';ctx.fill();
+    ctx.strokeStyle='#000';ctx.lineWidth=2;ctx.stroke();
   }
 
   ctx.save();
@@ -1902,8 +1941,8 @@ function drawOU(dark){
     const _tr=Math.max(3.5,abwPx*0.18);
     ctx.lineCap='round';
     const _aw=Math.max(4,abwPx*0.3);                 // アーム本体の太さ
-    const _ow=_aw+Math.max(2.5,abwPx*0.14);          // 枠線込みの太さ
-    const _olc=dark?'#1e293b':'#475569';             // 枠線色（濃いスレート）
+    const _ow=_aw+4;                                 // 枠線込みの太さ（黒枠2px×両側）
+    const _olc='#000';                               // 枠線色（黒・統一）
     for(let i=0;i<4;i++){
       const _t=(i+0.5)/4, _ay=-abhPx/2+_t*abhPx;
       // 枠線（下地の濃い線）
@@ -1915,15 +1954,15 @@ function drawOU(dark){
       ctx.lineWidth=_aw;ctx.stroke();
       // 器具先端（枠線付き）
       ctx.beginPath();ctx.arc(_tipx,_ay,_tr,0,Math.PI*2);
-      ctx.fillStyle=dark?'rgba(44,52,70,0.95)':'rgba(51,65,85,0.92)';ctx.fill();
-      ctx.strokeStyle=_olc;ctx.lineWidth=Math.max(1.5,abwPx*0.07);ctx.stroke();
+      ctx.fillStyle=dark?'rgba(229,233,244,0.97)':'#ffffff';ctx.fill();
+      ctx.strokeStyle=_olc;ctx.lineWidth=2;ctx.stroke();
     }
     ctx.lineCap='butt';
   }
   // マニフォールド本体（細長バー）
   ctx.beginPath();ctx.roundRect(-abwPx/2,-abhPx/2,abwPx,abhPx,acr);
-  ctx.fillStyle=_silverGrad(ctx,-abwPx/2,-abhPx/2,abwPx/2,abhPx/2,dark);ctx.fill();
-  ctx.strokeStyle=isSel?'#facc15':(dark?'#1e293b':'#475569');ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle=dark?'#e8edf5':'#ffffff';ctx.fill();
+  ctx.strokeStyle=isSel?'#facc15':'#000';ctx.lineWidth=2;ctx.stroke();
   if(gc('show-dims')){
     ctx.fillStyle=dark?'rgba(255,255,255,0.45)':'rgba(0,0,60,0.5)';
     ctx.font='8px sans-serif';ctx.textAlign='left';ctx.textBaseline='top';
@@ -1958,9 +1997,11 @@ function drawOU(dark){
 
   ctx.restore();
 
-  ctx.beginPath();ctx.arc(pivW.x,pivW.y,5,0,Math.PI*2);
-  ctx.fillStyle='#7c3aed';ctx.fill();
-  ctx.strokeStyle='#a78bfa';ctx.lineWidth=1.5;ctx.stroke();
+  if(gc('show-rollin')){
+    ctx.beginPath();ctx.arc(pivW.x,pivW.y,5,0,Math.PI*2);
+    ctx.fillStyle='#7c3aed';ctx.fill();
+    ctx.strokeStyle='#a78bfa';ctx.lineWidth=1.5;ctx.stroke();
+  }
 }
 
 function drawTable(dark){
