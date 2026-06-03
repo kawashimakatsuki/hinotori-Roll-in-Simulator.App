@@ -648,6 +648,7 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
         <div class="f"><label><input type="checkbox" id="show-grid" checked onchange="render()"> グリッド表示 (100mm)</label></div>
         <div class="f"><label><input type="checkbox" id="show-dims" checked onchange="render()"> 文字ラベル表示（OU/ARM BASE/CAM/手術台名/CAM PORT/ポート名）</label></div>
         <div class="f"><label><input type="checkbox" id="show-rollin" checked onchange="render()"> ロールイン角・OU回転軸表示</label></div>
+        <div class="f"><label><input type="checkbox" id="show-port-dist" checked onchange="render()"> ポート間距離を表示 (cm)</label></div>
         <div class="f"><label>ロールイン角 矢印の長さ (px)</label><input type="number" id="rollin-arrow-len" value="100" min="10" max="300" oninput="render()"></div>
         <div class="f"><label>背景色</label>
           <select id="bg-mode" onchange="changeBG()">
@@ -892,6 +893,9 @@ function renderPortList(){
         <label style="flex:1;font-size:9px;color:var(--muted)">Y(mm)<input type="number" value="${Math.round(p.y)}" onchange="updateExtraPort(${p.id},'y',this.value)" style="width:100%;font-size:10px;padding:2px 4px"></label>
         <label style="flex:1;font-size:9px;color:var(--muted)">サイズ<input type="number" min="5" max="30" value="${p.size}" onchange="updateExtraPort(${p.id},'size',this.value)" style="width:100%;font-size:10px;padding:2px 4px"></label>
       </div>
+      <label style="display:flex;align-items:center;gap:5px;width:100%;font-size:10px;color:var(--muted);cursor:pointer;margin-top:2px">
+        <input type="checkbox" ${p.noDist?'checked':''} onchange="updateExtraPort(${p.id},'noDist',this.checked)" style="width:14px;height:14px;flex-shrink:0"> 距離計算から除外
+      </label>
     </div>
   `).join('');
 }
@@ -901,6 +905,7 @@ function updateExtraPort(id, field, value){
   if(!p) return;
   if(field==='label') p.label = value;
   else if(field==='color') p.color = value;
+  else if(field==='noDist') p.noDist = !!value;   // 距離計算から除外
   else p[field] = parseFloat(value)||0;   // x, y, size
   render();   // 入力フォーカス維持のためリストは再描画しない
 }
@@ -926,6 +931,43 @@ function drawExtraPorts(dark){
     ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
     ctx.restore();
   }
+  // ポート間距離（cm）表示。ON/OFF対応
+  var _spd=document.getElementById('show-port-dist');
+  var _dports=extraPorts.filter(function(p){return !p.noDist;});   // 距離計算対象（除外チェックを外す）
+  if((!_spd||_spd.checked) && _dports.length>=1){
+    // カメラポート(CAM PORT)に最も近い2ポートを先に判定
+    var _cp=(typeof getPort==='function')?getPort():null;
+    var _near=_cp?_dports.map(function(p){return {p:p,d:Math.hypot(p.x-_cp.x,p.y-_cp.y)};})
+                          .sort(function(a,b){return a.d-b.d;}).slice(0,2):[];
+    var _nearIds=_near.map(function(it){return it.p.id;});
+    var _distLabel=function(_a,_b,dCm,col,colHex){
+      ctx.save(); ctx.setLineDash([5,4]); ctx.strokeStyle=col; ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(_a.x,_a.y);ctx.lineTo(_b.x,_b.y);ctx.stroke(); ctx.restore();
+      var _mx=(_a.x+_b.x)/2,_my=(_a.y+_b.y)/2,_lbl=dCm.toFixed(1)+' cm';
+      ctx.save();
+      ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      var _tw=ctx.measureText(_lbl).width;
+      ctx.fillStyle=dark?'rgba(15,23,42,0.85)':'rgba(255,255,255,0.9)';
+      ctx.strokeStyle=col;ctx.lineWidth=1;
+      ctx.beginPath();ctx.roundRect(_mx-_tw/2-5,_my-10,_tw+10,20,5);ctx.fill();ctx.stroke();
+      ctx.fillStyle=colHex; ctx.fillText(_lbl,_mx,_my); ctx.restore();
+    };
+    // 連続ポート間（カメラに最も近い隣接ペアは省略：camを挟むため）
+    for(var _i=0;_i<_dports.length-1;_i++){
+      var _p1=_dports[_i], _p2=_dports[_i+1];
+      if(_nearIds.length===2 && _nearIds.indexOf(_p1.id)>=0 && _nearIds.indexOf(_p2.id)>=0) continue;
+      _distLabel(w2c(_p1.x,_p1.y), w2c(_p2.x,_p2.y), Math.hypot(_p2.x-_p1.x,_p2.y-_p1.y)/10,
+                 dark?'rgba(245,158,11,0.9)':'rgba(217,119,6,0.9)', dark?'#f59e0b':'#b45309');
+    }
+    // カメラポートに近い2ポートとの距離（cyan）
+    if(_cp){
+      var _cc=w2c(_cp.x,_cp.y);
+      _near.forEach(function(it){
+        _distLabel(w2c(it.p.x,it.p.y), _cc, it.d/10,
+                   dark?'rgba(34,211,238,0.9)':'rgba(8,145,178,0.9)', dark?'#22d3ee':'#0e7490');
+      });
+    }
+  }
   extraPorts.forEach(p=>{
     const pc = w2c(p.x, p.y);
     const r = Math.max(6, (p.size||12)/2 * VIEW.sc);
@@ -947,12 +989,6 @@ function drawExtraPorts(dark){
       ctx.textBaseline = 'bottom';
       ctx.fillText(p.label, pc.x, pc.y - r - 2);
     }
-    // 座標ラベル
-    ctx.font = '9px sans-serif';
-    ctx.fillStyle = dark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    ctx.fillText(`(${p.x.toFixed(0)},${p.y.toFixed(0)})`, pc.x, pc.y + r + 2);
     // ホバーハイライト
     if(hoverPortId === p.id){
       ctx.save();
@@ -2365,7 +2401,7 @@ function updateStatus(d,cam){
     var _alim=(typeof ARM_SWING!=='undefined')?ARM_SWING:27.8;
     var _atLimit=Math.abs(_arel)>=_alim-0.05;
     var _ab=$('arm-sw-s');
-    _ab.textContent=(_arel>0?'+':'')+_arel.toFixed(1)+'°';
+    _ab.textContent=Math.abs(_arel).toFixed(1)+'°';   // 旋回角は常に0〜27.8の絶対値表示
     _ab.style.color=_atLimit?'#f59e0b':'#06b6d4';
     _ab.style.borderColor=_atLimit?'#f59e0b':'#06b6d4';
     var _ai=$('arm-sw-info'); if(_ai) _ai.textContent='可動±'+_alim.toFixed(1)+'°'+(_apat?'（'+_apat+'）':'');
@@ -2481,7 +2517,7 @@ function initArmPattern(){
   var p = Math.abs(Math.sin(sw*Math.PI/180)) > Math.SQRT1_2 ? 'perp' : 'parallel';
   setArmPattern(p);
 }
-function _armRelText(rel){ return (rel>0?'+':'')+rel.toFixed(1)+'°'; }
+function _armRelText(rel){ return Math.abs(rel).toFixed(1)+'°'; }   // 旋回角は常に0〜27.8の絶対値表示
 // arm-sw(スライダー)は絶対角を保持。数値入力・モバイル表示は基準0°の相対角で表示する。
 function onArmSwivel(){
   var sw=document.getElementById('arm-sw'); if(!sw) return;
@@ -2537,6 +2573,7 @@ function changeBG(){render();}
 let drag={active:false,moved:false,mode:'',sx:0,sy:0,ox:0,oy:0,oAng:0};
 
 cvs.addEventListener('mousedown',e=>{
+  if(e.button!==0) return;   // 左クリック以外（右クリック等）は無視＝右クリックでポート追加されない
   const rect=cvs.getBoundingClientRect();
   const wp=c2w(e.clientX-rect.left,e.clientY-rect.top);
 
@@ -3842,7 +3879,7 @@ function slStep(id, mn, mx, step, dir){
 // ===== カスタム初期設定 =====
 var INIT_FIELDS  = ["ou-w", "ou-d", "ou-piv", "ou-ang", "ou-ang-num", "ou-x", "ou-y", "arm-sw", "arm-sw-num", "arm-x", "arm-y", "arm-bw", "arm-bh", "cam-x", "cam-y", "gl-ang", "gl-ang-num", "gl-len", "tbl-w", "tbl-d", "tbl-ang", "tbl-ang-num", "tbl-x", "tbl-y", "port-x", "port-y", "port-h", "tilt-ang", "tilt-ang-num", "tilt-lr-ang", "tilt-lr-ang-num", "rollin-arrow-len"];
 var INIT_SELECTS = ["tilt-type", "tilt-lr-type", "bg-mode"];
-var INIT_CHECKS  = ["show-guide", "show-grid", "show-dims", "show-rollin"];
+var INIT_CHECKS  = ["show-guide", "show-grid", "show-dims", "show-rollin", "show-port-dist"];
 var INIT_KEY     = 'hinotori_init_v1';
 
 function saveAsInitial(){
@@ -4597,6 +4634,9 @@ function resetToInitial(){
   s('rollin-arrow-len', 100);
   var bgMode = document.getElementById('bg-mode');
   if(bgMode){ bgMode.value = 'light'; changeBG(); }
+  // 追加ポートもデフォルト状態（なし）に
+  extraPorts = []; portLineStart = null; portLineEnd = null;
+  if(typeof renderPortList==='function') renderPortList();
   if(typeof initArmPattern==='function') initArmPattern();
   // 再描画
   render();
