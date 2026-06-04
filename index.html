@@ -3711,12 +3711,20 @@ cvs.addEventListener('touchmove',e=>{
     }
     render();
   }else if(t.length===2){
+    const rect=cvs.getBoundingClientRect();
     const newDist=touchDist(t),newMid=touchMid(t);
     const factor=newDist/touch.lastDist;
-    const mx=newMid.x-cvs.getBoundingClientRect().left;
-    const my=newMid.y-cvs.getBoundingClientRect().top;
-    VIEW.px=(VIEW.px-mx)*factor+mx;VIEW.py=(VIEW.py-my)*factor+my;
-    VIEW.sc=Math.max(0.02,Math.min(1,VIEW.sc*factor));
+    const oldSc=VIEW.sc;
+    const newSc=Math.max(0.02,Math.min(1,oldSc*factor));
+    const af=newSc/oldSc;                 // スケールのクランプ後の実効倍率
+    const ox=cvs.width/2, oy=cvs.height/2;// 描画変換の中心オフセット
+    const oldMx=touch.lastMid.x-rect.left, oldMy=touch.lastMid.y-rect.top;
+    const newMx=newMid.x-rect.left,        newMy=newMid.y-rect.top;
+    // 直前の指の中点(のワールド点)を今の指の中点に固定したままズーム
+    //  → ズーム中心のずれを防ぎつつ、2本指の平行移動(パン)も同時に反映する
+    VIEW.px=(newMx-ox) - ((oldMx-ox) - VIEW.px)*af;
+    VIEW.py=(newMy-oy) + (VIEW.py - (oldMy-oy))*af;
+    VIEW.sc=newSc;
     touch.lastDist=newDist;touch.lastMid=newMid;render();
   }
 },{passive:false});
