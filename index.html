@@ -500,6 +500,42 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
     </div>
 
     <div class="sec">
+      <div class="sec-hd" onclick="toggleSec(this)"><span>🧍 患者</span><span class="arr">▶</span></div>
+      <div class="sec-bd">
+        <div class="f"><label><input type="checkbox" id="show-patient" onchange="render()"> 患者を表示（手術台の上）</label></div>
+        <div class="f"><label>身長 (cm)</label><input type="number" id="patient-h" value="170" min="30" max="220" step="0.1" oninput="render()"></div>
+        <div class="f"><label>体位</label>
+          <select id="patient-pose" onchange="render()">
+            <option value="supine">仰臥位</option>
+            <option value="lateral-left">側臥位（左）</option>
+            <option value="lateral-right">側臥位（右）</option>
+            <option value="lithotomy">砕石位</option>
+            <option value="legs-open">開脚位</option>
+            <option value="prone">伏臥位</option>
+          </select>
+        </div>
+        <div class="row">
+          <div class="f"><label>左右位置 (mm)</label><input type="number" id="patient-x" value="0" oninput="render()"></div>
+          <div class="f"><label>頭足位置 (mm)</label><input type="number" id="patient-y" value="0" oninput="render()"></div>
+        </div>
+        <div class="f"><label>位置調整（方向キー）</label>
+          <div style="display:grid;grid-template-columns:repeat(3,40px);gap:5px;justify-content:center;margin-top:2px">
+            <span></span>
+            <button type="button" class="btn btn-sm" onclick="nudgePatient(0,50)" title="頭側へ">▲</button>
+            <span></span>
+            <button type="button" class="btn btn-sm" onclick="nudgePatient(-50,0)" title="左へ">◀</button>
+            <button type="button" class="btn btn-sm" onclick="document.getElementById('patient-x').value=0;document.getElementById('patient-y').value=0;render();" title="中央に戻す" style="font-size:10px;padding:0">中央</button>
+            <button type="button" class="btn btn-sm" onclick="nudgePatient(50,0)" title="右へ">▶</button>
+            <span></span>
+            <button type="button" class="btn btn-sm" onclick="nudgePatient(0,-50)" title="足側へ">▼</button>
+            <span></span>
+          </div>
+          <div style="font-size:9px;color:var(--muted);text-align:center;margin-top:2px">1回 50mm</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
       <div class="sec-hd" onclick="toggleSec(this)"><span>🎯 カメラポート</span><span class="arr">▶</span></div>
       <div class="sec-bd">
         <div class="row">
@@ -1664,6 +1700,7 @@ function render(){
   if(gc('show-grid'))drawGrid(dark);
   drawAxes(dark);
   drawTable(dark);
+  drawPatient(dark);
   drawOU(dark);
   if(gc('show-guide'))drawGuide(dark);
   const cam=getCam(),port=getPort(),portRaw=getPort(false);
@@ -2175,6 +2212,99 @@ function drawTable(dark){
   if(isSel){
     ctx.strokeStyle='rgba(250,204,21,0.25)';ctx.lineWidth=8;
     ctx.beginPath();ctx.roundRect(tx-4,ty-4,tw+8,tdh+8,cr+4);ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// 患者の位置を方向キーで微調整（dx=左右, dy=頭足。+yは頭側）
+function nudgePatient(dx, dy){
+  var ex=document.getElementById('patient-x'), ey=document.getElementById('patient-y');
+  if(ex) ex.value=(parseFloat(ex.value)||0)+dx;
+  if(ey) ey.value=(parseFloat(ey.value)||0)+dy;
+  if(typeof render==='function') render();
+}
+
+// ====== 患者（手術台の上、体位別の上面図） ======
+function drawPatient(dark){
+  var show=document.getElementById('show-patient');
+  if(!show || !show.checked) return;
+  var H=((parseFloat((document.getElementById('patient-h')||{}).value)||170)*10)*VIEW.sc;   // cm入力→mm換算
+  if(!(H>0)) return;
+  var pose=(document.getElementById('patient-pose')||{value:'supine'}).value;
+  var tA=d2r(gv('tbl-ang'));
+  var tc=w2c(gv('tbl-x'),gv('tbl-y'));
+  ctx.save(); ctx.translate(tc.x,tc.y); ctx.rotate(-tA);
+  // 患者の位置調整（手術台ローカル：左右=x、頭足=y。+yは頭側）
+  var _ppx=(parseFloat((document.getElementById('patient-x')||{}).value)||0)*VIEW.sc;
+  var _ppy=(parseFloat((document.getElementById('patient-y')||{}).value)||0)*VIEW.sc;
+  ctx.translate(_ppx, -_ppy);
+  var GOWN=dark?'#9db1cb':'#c4d4e8', SKIN=GOWN, OUT='#3a4452';   // 頭も体と同じ薄い青
+  ctx.lineJoin='round'; ctx.lineCap='round';
+  function limb(){
+    var a=arguments, wd=a[a.length-1];
+    ctx.beginPath(); ctx.moveTo(a[0],a[1]);
+    for(var i=2;i<a.length-1;i+=2) ctx.lineTo(a[i],a[i+1]);
+    ctx.strokeStyle=OUT; ctx.lineWidth=wd+3; ctx.stroke();
+    ctx.strokeStyle=GOWN; ctx.lineWidth=wd; ctx.stroke();
+  }
+  function ell(cx,cy,rx,ry,fill){ ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle=OUT;ctx.lineWidth=2;ctx.stroke(); }
+  function torso(shW,hipW,shY,hipY){
+    var midY=(shY+hipY)/2, waistW=Math.min(shW,hipW)*0.82;
+    ctx.beginPath();
+    ctx.moveTo(-shW,shY);
+    ctx.quadraticCurveTo(-waistW,midY,-hipW,hipY);
+    ctx.lineTo(hipW,hipY);
+    ctx.quadraticCurveTo(waistW,midY,shW,shY);
+    ctx.closePath();
+    ctx.fillStyle=GOWN;ctx.fill();ctx.strokeStyle=OUT;ctx.lineWidth=2;ctx.stroke();
+  }
+  var top=-H/2, headR=H*0.058, aW=H*0.045, lW=H*0.062;
+  // 手術台幅でクランプ（脚などが台の外に出ないように）
+  var _xlim=gv('tbl-w')*VIEW.sc*0.46;
+  function cl(x){ return Math.max(-_xlim, Math.min(_xlim, x)); }
+  if(pose==='supine'||pose==='prone'){
+    var shY=top+0.17*H, hipY=top+0.50*H, shW=0.13*H, hipW=0.10*H;
+    if(pose==='supine'){
+      limb(-shW*0.85,shY+H*0.02,cl(-shW*1.05),hipY-H*0.02,aW);
+      limb( shW*0.85,shY+H*0.02,cl( shW*1.05),hipY-H*0.02,aW);
+    } else {
+      limb(-shW*0.7,shY,-headR*1.6,top+H*0.05,aW);
+      limb( shW*0.7,shY, headR*1.6,top+H*0.05,aW);
+    }
+    limb(-hipW*0.5,hipY-H*0.02,-hipW*0.55,top+0.985*H,lW);
+    limb( hipW*0.5,hipY-H*0.02, hipW*0.55,top+0.985*H,lW);
+    torso(shW,hipW,shY,hipY);
+    ell(0,top+headR,headR*0.82+0.25,headR+0.25,SKIN);
+  } else if(pose==='legs-open'){
+    var shY=top+0.17*H, hipY=top+0.50*H, shW=0.13*H, hipW=0.10*H;
+    limb(-shW*0.85,shY+H*0.02,cl(-shW*1.05),hipY-H*0.02,aW);
+    limb( shW*0.85,shY+H*0.02,cl( shW*1.05),hipY-H*0.02,aW);
+    limb(-hipW*0.5,hipY-H*0.02,cl(-hipW*1.9),top+0.985*H,lW);
+    limb( hipW*0.5,hipY-H*0.02,cl( hipW*1.9),top+0.985*H,lW);
+    torso(shW,hipW,shY,hipY);
+    ell(0,top+headR,headR*0.82+0.25,headR+0.25,SKIN);
+  } else if(pose==='lithotomy'){
+    var shY=top+0.17*H, hipY=top+0.47*H, shW=0.13*H, hipW=0.10*H;
+    limb(-shW*0.85,shY+H*0.02,cl(-shW*1.05),hipY,aW);
+    limb( shW*0.85,shY+H*0.02,cl( shW*1.05),hipY,aW);
+    // 砕石位：膝で屈曲。太もも=股→外側(膝)、下腿=膝→足側へまっすぐ下。太もも・下腿を明確に表示
+    limb(-hipW*0.5,hipY, cl(-hipW*1.6),hipY+H*0.06, cl(-hipW*1.6),hipY+H*0.27, lW);
+    limb( hipW*0.5,hipY, cl( hipW*1.6),hipY+H*0.06, cl( hipW*1.6),hipY+H*0.27, lW);
+    torso(shW,hipW,shY,hipY);
+    ell(0,top+headR,headR*0.82+0.25,headR+0.25,SKIN);
+  } else if(pose==='lateral-left'||pose==='lateral-right'){
+    var mir=(pose==='lateral-right')?1:-1;
+    var shY=top+0.16*H, hipY=top+0.52*H, shW=0.075*H, hipW=0.075*H; // 側臥位は細い
+    // 脚：股・膝を屈曲して前方(mir)へ。頭側脚・足側脚を別々に
+    limb(mir*hipW*0.3,hipY-H*0.03, cl(mir*hipW*1.7),hipY+H*0.02, cl(mir*hipW*1.4),top+0.90*H,lW);
+    limb(mir*hipW*0.3,hipY+H*0.05, cl(mir*hipW*2.1),hipY+H*0.11, cl(mir*hipW*1.8),top+0.93*H,lW);
+    // 下側の腕：上の腕と同じ前方(mir)へ。ただし胴体の後ろ(背面レイヤー)に描画
+    limb(mir*shW*0.4, shY+H*0.06, mir*0.20*H, shY+H*0.105, aW);
+    // 胴体・頭
+    torso(shW,hipW,shY,hipY);
+    ell(mir*headR*0.3,top+headR,headR*0.82+0.25,headR+0.25,SKIN);
+    // 上側の腕：前面(mir側)・最前面
+    limb(mir*shW*0.5,shY-H*0.01, mir*0.129*H,top+H*0.088, mir*0.201*H,top+H*0.072, aW);
   }
   ctx.restore();
 }
@@ -3877,9 +4007,9 @@ function slStep(id, mn, mx, step, dir){
 
 
 // ===== カスタム初期設定 =====
-var INIT_FIELDS  = ["ou-w", "ou-d", "ou-piv", "ou-ang", "ou-ang-num", "ou-x", "ou-y", "arm-sw", "arm-sw-num", "arm-x", "arm-y", "arm-bw", "arm-bh", "cam-x", "cam-y", "gl-ang", "gl-ang-num", "gl-len", "tbl-w", "tbl-d", "tbl-ang", "tbl-ang-num", "tbl-x", "tbl-y", "port-x", "port-y", "port-h", "tilt-ang", "tilt-ang-num", "tilt-lr-ang", "tilt-lr-ang-num", "rollin-arrow-len"];
-var INIT_SELECTS = ["tilt-type", "tilt-lr-type", "bg-mode"];
-var INIT_CHECKS  = ["show-guide", "show-grid", "show-dims", "show-rollin", "show-port-dist"];
+var INIT_FIELDS  = ["ou-w", "ou-d", "ou-piv", "ou-ang", "ou-ang-num", "ou-x", "ou-y", "arm-sw", "arm-sw-num", "arm-x", "arm-y", "arm-bw", "arm-bh", "cam-x", "cam-y", "gl-ang", "gl-ang-num", "gl-len", "tbl-w", "tbl-d", "tbl-ang", "tbl-ang-num", "tbl-x", "tbl-y", "port-x", "port-y", "port-h", "tilt-ang", "tilt-ang-num", "tilt-lr-ang", "tilt-lr-ang-num", "rollin-arrow-len", "patient-h", "patient-x", "patient-y"];
+var INIT_SELECTS = ["tilt-type", "tilt-lr-type", "bg-mode", "patient-pose"];
+var INIT_CHECKS  = ["show-guide", "show-grid", "show-dims", "show-rollin", "show-port-dist", "show-patient"];
 var INIT_KEY     = 'hinotori_init_v1';
 
 function saveAsInitial(){
