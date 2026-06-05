@@ -583,6 +583,7 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
       <div class="sec-hd" onclick="toggleSec(this)"><span>📐 傾斜補正</span><span class="arr">▶</span></div>
       <div class="sec-bd">
         <div class="f"><label>テーブルトップ底面〜カメラポート腹壁 高さ (mm)</label><input type="number" id="port-h" value="500" min="0" max="2000" oninput="render()"></div>
+        <div id="tilt-info" style="font-size:10px;color:var(--accent);margin:2px 0 6px"></div>
         <div class="f"><label>傾斜種別</label>
           <select id="tilt-type" onchange="render()">
             <option value="none">なし（水平）</option>
@@ -598,7 +599,6 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
             <input type="number" id="tilt-ang-num" min="0" max="45" step="0.5" value="0" oninput="onTiltAngleNum()">
           </div>
         </div>
-                <div id="tilt-info" style="font-size:10px;color:var(--accent);margin-top:3px"></div>
           <div class="f" style="margin-top:8px"><label>左右傾斜</label>
             <select id="tilt-lr-type" onchange="render()">
               <option value="none">なし（水平）</option>
@@ -2647,10 +2647,25 @@ function updateStatus(d,cam){
 }
 
 function updateTiltInfo(raw,corr){
-  const d=dist(raw,corr).toFixed(1);
-  const el=$('tilt-info');
-  if($('tilt-type').value==='none'||gv('tilt-ang')===0){el.textContent='';return;}
-  el.textContent=`傾斜補正量: ${d}mm`;
+  const el=$('tilt-info'); if(!el) return;
+  // 傾斜補正による平面上の移動量を、頭足方向・左右方向の成分に分けて計算（テーブルローカルmm）
+  const tt=$('tilt-type').value, ta=d2r(gv('tilt-ang')), h=gv('port-h');
+  const lrEl=document.getElementById('tilt-lr-type');
+  const lrAngEl=document.getElementById('tilt-lr-ang');
+  const lrt=lrEl?lrEl.value:'none';
+  const lra=d2r(parseFloat((lrAngEl||{value:0}).value)||0);
+  let dy=0,dx=0;
+  if(tt==='trend')dy= h*Math.tan(ta);   // 頭低位 → 頭側へ
+  if(tt==='rev')  dy=-h*Math.tan(ta);   // 頭高位 → 足側へ
+  if(lrt==='right')dx=-h*Math.tan(lra); // 右
+  if(lrt==='left') dx= h*Math.tan(lra); // 左
+  if(Math.abs(dx)<0.05&&Math.abs(dy)<0.05){el.textContent='';return;}
+  const total=Math.hypot(dx,dy);
+  const parts=[];
+  if(Math.abs(dy)>=0.05)parts.push((dy>0?'頭側':'足側')+Math.abs(dy).toFixed(1)+'mm');
+  if(Math.abs(dx)>=0.05)parts.push((dx>0?'左':'右')+Math.abs(dx).toFixed(1)+'mm');
+  el.innerHTML='傾斜補正による平面移動距離: <b>'+total.toFixed(1)+'mm</b>'
+    +(parts.length?'<br>（'+parts.join(' ／ ')+'）':'');
 }
 
 let sel=null;
