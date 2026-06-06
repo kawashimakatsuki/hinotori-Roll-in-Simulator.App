@@ -481,7 +481,14 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
         <hr class="sep">
         <div class="row">
           <div class="f"><label>幅 (mm)</label><input type="number" id="tbl-w" value="560" min="100" max="2000" oninput="onTblDimChange()"></div>
-          <div class="f"><label>長さ (mm)</label><input type="number" id="tbl-d" value="1800" min="100" max="4000" oninput="onTblDimChange()"></div>
+          <div class="f"><label>長さ (mm)</label><input type="number" id="tbl-d" value="1800" min="100" max="4000" oninput="onTblLenChange()"></div>
+        </div>
+        <div class="f"><label>長さ変更の基準</label>
+          <select id="tbl-len-anchor">
+            <option value="center">中央基準（両側均等・従来）</option>
+            <option value="head">頭側で伸縮（尾側端を固定）</option>
+            <option value="foot">尾側で伸縮（頭側端を固定）</option>
+          </select>
         </div>
         <div class="f"><label>角度 (°)</label>
           <div class="slider-row">
@@ -496,6 +503,7 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
           <div class="f"><label>X位置 (mm)</label><input type="number" id="tbl-x" value="0" oninput="render()"></div>
           <div class="f"><label>Y位置 (mm)</label><input type="number" id="tbl-y" value="0" oninput="render()"></div>
         </div>
+        <button type="button" class="btn btn-sm" onclick="resetTblSection()" style="width:100%;margin-top:8px;border-color:#f97316;color:#f97316">🔄 手術台をリセット</button>
       </div>
     </div>
 
@@ -533,6 +541,7 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
           </div>
           <div style="font-size:9px;color:var(--muted);text-align:center;margin-top:2px">1回 50mm</div>
         </div>
+        <button type="button" class="btn btn-sm" onclick="resetPatientSection()" style="width:100%;margin-top:8px;border-color:#f97316;color:#f97316">🔄 患者をリセット</button>
       </div>
     </div>
 
@@ -543,6 +552,7 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
           <div class="f"><label>台中心から X (mm)</label><input type="number" id="port-x" value="0" oninput="render()"></div>
           <div class="f"><label>台中心から Y (mm)</label><input type="number" id="port-y" value="0" oninput="render()"></div>
         </div>
+        <button type="button" class="btn btn-sm" onclick="resetPortSection()" style="width:100%;margin-top:8px;border-color:#f97316;color:#f97316">🔄 カメラポートをリセット</button>
       </div>
     </div>
 
@@ -585,6 +595,7 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
         <div class="f"><label>回転軸〜カメラポート腹壁 高さ H (mm)</label><input type="number" id="port-h" value="500" min="0" max="2000" oninput="render()"></div>
         <div class="f"><label>回転軸 頭足方向位置 (mm, ＋頭側／－足側)</label><input type="number" id="tilt-axis-y" value="0" step="10" oninput="render()"></div>
         <div class="f"><label>回転軸 左右方向位置 (mm, ＋左／－右)</label><input type="number" id="tilt-axis-x" value="0" step="10" oninput="render()"></div>
+        <div class="f"><label>傾斜表現の強さ (%)　<span style="color:var(--muted);font-size:9px">100=従来 / 低いほど緩く</span></label><input type="number" id="tilt-strength" value="50" min="0" max="100" step="5" oninput="render()"></div>
         <div id="tilt-info" style="font-size:10px;color:var(--accent);margin:2px 0 6px"></div>
         <div class="f"><label>傾斜種別</label>
           <select id="tilt-type" onchange="render()">
@@ -616,6 +627,7 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
               <input type="number" id="tilt-lr-ang-num" min="0" max="45" step="0.5" value="0" oninput="onTiltLRAngleNum()" style="width:60px">
             </div>
           </div>
+        <button type="button" class="btn btn-sm" onclick="resetTiltSection()" style="width:100%;margin-top:8px;border-color:#f97316;color:#f97316">🔄 傾斜補正をリセット</button>
       </div>
     </div>
 
@@ -1115,11 +1127,69 @@ function applyTblPreset(name){
   render();
 }
 
+// 長さ(tbl-d)変更時：基準（中央／頭側で伸縮／尾側で伸縮）に応じて固定端が動かないよう中心位置を補正
+function onTblLenChange(){
+  const anchorEl = document.getElementById('tbl-len-anchor');
+  const anchor = anchorEl ? anchorEl.value : 'center';
+  const newD = gv('tbl-d');
+  const prevD = (typeof window._prevTblD === 'number') ? window._prevTblD : newD;
+  const delta = newD - prevD;
+  if(anchor !== 'center' && delta !== 0){
+    const a = d2r(gv('tbl-ang'));
+    const headX = -Math.sin(a), headY = Math.cos(a);  // テーブルローカル +y(頭) の世界方向
+    const sign = (anchor === 'head') ? 1 : -1;         // 頭側で伸縮→中心を頭へ / 尾側で伸縮→中心を足へ
+    const shift = sign * delta / 2;
+    const tx = document.getElementById('tbl-x'), ty = document.getElementById('tbl-y');
+    if(tx) tx.value = (gv('tbl-x') + shift * headX).toFixed(1);
+    if(ty) ty.value = (gv('tbl-y') + shift * headY).toFixed(1);
+    // 中心移動に伴い、テーブルローカル配置（患者・カメラポート）が世界座標でズレないよう頭足方向に逆補正
+    // （追加ポート・カスタムオブジェクトは世界座標で保持されるため補正不要）
+    const _adj = (id)=>{ const e=document.getElementById(id); if(e) e.value=((parseFloat(e.value)||0) - shift).toFixed(1); };
+    _adj('patient-y');
+    _adj('port-y');
+    _adj('tilt-axis-y');  // 傾斜の回転軸も世界座標で動かないよう逆補正
+  }
+  onTblDimChange();
+}
+
 function onTblDimChange(){
   // 寸法を手動変更したらアクティブプリセットを解除
   activeTblPresetName = '';
   renderTblPresetGrid();
   if(typeof renderArmPresetGrid==="function") renderArmPresetGrid();
+  render();
+}
+
+// ===== セクション別リセット =====
+function _secSet(id,v){ var e=document.getElementById(id); if(e) e.value=v; }
+function resetTblSection(){   // 手術台
+  _secSet('tbl-w',560); _secSet('tbl-d',1800);
+  _secSet('tbl-len-anchor','center');
+  _secSet('tbl-ang',-45); _secSet('tbl-ang-num',-45);
+  _secSet('tbl-x',0); _secSet('tbl-y',0);
+  activeTblPresetName='';
+  if(typeof renderTblPresetGrid==='function') renderTblPresetGrid();
+  if(typeof renderArmPresetGrid==='function') renderArmPresetGrid();
+  render();
+}
+function resetPatientSection(){   // 患者（表示ON/OFFは維持）
+  _secSet('patient-h',170);
+  _secSet('patient-pose','supine');
+  _secSet('patient-x',0); _secSet('patient-y',0);
+  render();
+}
+function resetPortSection(){   // カメラポート
+  _secSet('port-x',0); _secSet('port-y',0);
+  render();
+}
+function resetTiltSection(){   // 傾斜補正
+  _secSet('port-h',500);
+  _secSet('tilt-axis-x',0); _secSet('tilt-axis-y',0);
+  _secSet('tilt-strength',50);
+  _secSet('tilt-type','none');
+  _secSet('tilt-ang',0); _secSet('tilt-ang-num',0);
+  _secSet('tilt-lr-type','none');
+  _secSet('tilt-lr-ang',0); _secSet('tilt-lr-ang-num',0);
   render();
 }
 
@@ -1252,7 +1322,13 @@ function getCam(){
 
 // 傾斜補正：回転軸からの符号付き距離(Lx,Ly)と高さHによる剛体回転の平面移動量(テーブルローカルmm)
 // 回転軸の直上にポートが無い場合も考慮。Ly=頭足方向距離, Lx=左右方向距離（傾斜前）
+// 傾斜表現の強さ（0〜1）。100%=従来の剛体回転、低いほど伸縮・ポート移動を緩く表示
+function tiltStrength(){
+  const e=document.getElementById('tilt-strength');
+  return (e && e.value!=='') ? ((parseFloat(e.value)||0)/100) : 1;
+}
 function tiltOffset(ox,oy){
+  const k=tiltStrength();
   const h=gv('port-h');                          // 回転軸→腹壁 高さ H
   const ax=gv('tilt-axis-x'),ay=gv('tilt-axis-y');
   const Ly=oy-ay,Lx=ox-ax;                       // 軸→ポート 符号付き距離（頭足／左右）
@@ -1269,7 +1345,7 @@ function tiltOffset(ox,oy){
     if(lrt==='right')dx=Lx*(Math.cos(lra)-1)-h*Math.sin(lra); // 右下がり
     if(lrt==='left') dx=Lx*(Math.cos(lra)-1)+h*Math.sin(lra); // 左下がり
   }
-  return {dx,dy,Lx,Ly};
+  return {dx:dx*k,dy:dy*k,Lx,Ly};  // 強さkで移動量を緩和（Lx/Lyは実距離のまま）
 }
 
 function getPort(corr=true){
@@ -1723,6 +1799,7 @@ function render(){
   const W=cvs.width,H=cvs.height;
   // 各フレームを必ず無変換状態から開始（前フレームで万一transformがリークしても歪み・グリッド重複を防ぐ）
   ctx.setTransform(1,0,0,1,0,0);
+  window._prevTblD = gv('tbl-d');  // 「長さ変更の基準」用に直近の長さを記録
   const bgVal=$('bg-mode').value;
   const dark=bgVal==='dark';
   ctx.fillStyle = bgVal==='cream' ? '#f1ead7' : (dark?'#0a0a12':'#eef0f5');
@@ -2222,12 +2299,13 @@ function drawOU(dark){
 
 // 傾斜方向の foreshorten（手術台ローカル系: x=左右, y=頭足）。床上のOU/グリッド等には適用しない
 function tiltForeshortenLocal(){
+  const k = tiltStrength();
   const ta = ($('tilt-type').value!=='none') ? d2r(gv('tilt-ang')) : 0;
   const lrEl = document.getElementById('tilt-lr-type');
   const lra = (lrEl && lrEl.value!=='none') ? d2r(parseFloat((document.getElementById('tilt-lr-ang')||{value:0}).value)||0) : 0;
   return {
-    sx: lra>0 ? Math.cos(lra) : 1,    // 左右傾斜 → 左右方向を圧縮
-    sy: ta>0  ? Math.cos(ta)  : 1,    // 前後傾斜 → 頭足方向を圧縮
+    sx: lra>0 ? 1+k*(Math.cos(lra)-1) : 1,    // 左右傾斜 → 左右方向を圧縮（強さkで緩和）
+    sy: ta>0  ? 1+k*(Math.cos(ta)-1)  : 1,    // 前後傾斜 → 頭足方向を圧縮（強さkで緩和）
     x0: gv('tilt-axis-x')*VIEW.sc,  // 回転軸の左右位置（キャンバスローカルx）
     y0: -gv('tilt-axis-y')*VIEW.sc  // 回転軸の頭足位置（キャンバスローカルy、頭=上=負）
   };
@@ -2327,6 +2405,7 @@ function drawPatient(dark){
   var tA=d2r(gv('tbl-ang'));
   var tc=w2c(gv('tbl-x'),gv('tbl-y'));
   ctx.save(); ctx.translate(tc.x,tc.y); ctx.rotate(-tA);
+  applyTiltForeshorten();  // 傾斜補正：患者も手術台と一緒に頭足/左右方向へ圧縮して傾斜を表現
   // 患者の位置調整（手術台ローカル：左右=x、頭足=y。+yは頭側）
   var _ppx=(parseFloat((document.getElementById('patient-x')||{}).value)||0)*VIEW.sc;
   var _ppy=(parseFloat((document.getElementById('patient-y')||{}).value)||0)*VIEW.sc;
@@ -3413,6 +3492,8 @@ function getPresetData(){
     portX:gv('port-x'),portY:gv('port-y'),
     tiltType:$('tilt-type').value,tiltAng:gv('tilt-ang'),portH:gv('port-h'),
     tiltAxisX:gv('tilt-axis-x'),tiltAxisY:gv('tilt-axis-y'),
+    tblLenAnchor:$('tbl-len-anchor').value, tiltStrength:gv('tilt-strength'),
+    tiltLRType:$('tilt-lr-type').value, tiltLRAng:gv('tilt-lr-ang'),
     extraPorts: JSON.parse(JSON.stringify(extraPorts)),
     activeTblPreset: activeTblPresetName,
     paintStrokes: JSON.parse(JSON.stringify(paintStrokes))
@@ -3433,6 +3514,10 @@ function applyPresetData(d){
   s('tilt-ang',d.tiltAng);s('port-h',d.portH);
   if(d.tiltAxisX!==undefined)s('tilt-axis-x',d.tiltAxisX);
   if(d.tiltAxisY!==undefined)s('tilt-axis-y',d.tiltAxisY);
+  if(d.tblLenAnchor!==undefined && $('tbl-len-anchor'))$('tbl-len-anchor').value=d.tblLenAnchor;
+  if(d.tiltStrength!==undefined)s('tilt-strength',d.tiltStrength);
+  if(d.tiltLRType!==undefined && $('tilt-lr-type'))$('tilt-lr-type').value=d.tiltLRType;
+  if(d.tiltLRAng!==undefined){s('tilt-lr-ang',d.tiltLRAng);if($('tilt-lr-ang-num'))$('tilt-lr-ang-num').value=(parseFloat(d.tiltLRAng)||0).toFixed(1);}
   $('ou-ang-num').value=(d.ouAng||0).toFixed(1);
   $('arm-sw-num').value=(d.armSw||0).toFixed(1);
   $('tbl-ang-num').value=(d.tblAng||0).toFixed(1);
@@ -3636,8 +3721,9 @@ const DEFAULT_FIELDS = [
 ];
 
 const DEFAULT_SELECTS = [
-  {id:'tilt-type', label:'傾斜種別'},
-  {id:'bg-mode',   label:'背景色'},
+  {id:'tilt-type',      label:'傾斜種別'},
+  {id:'bg-mode',        label:'背景色'},
+  {id:'tbl-len-anchor', label:'長さ変更の基準'},
 ];
 
 const DEFAULT_CHECKS = [
@@ -4213,8 +4299,8 @@ function slStep(id, mn, mx, step, dir){
 
 
 // ===== カスタム初期設定 =====
-var INIT_FIELDS  = ["ou-w", "ou-d", "ou-piv", "ou-ang", "ou-ang-num", "ou-x", "ou-y", "arm-sw", "arm-sw-num", "arm-x", "arm-y", "arm-bw", "arm-bh", "cam-x", "cam-y", "gl-ang", "gl-ang-num", "gl-len", "tbl-w", "tbl-d", "tbl-ang", "tbl-ang-num", "tbl-x", "tbl-y", "port-x", "port-y", "port-h", "tilt-axis-x", "tilt-axis-y", "tilt-ang", "tilt-ang-num", "tilt-lr-ang", "tilt-lr-ang-num", "rollin-arrow-len", "patient-h", "patient-x", "patient-y"];
-var INIT_SELECTS = ["tilt-type", "tilt-lr-type", "bg-mode", "patient-pose"];
+var INIT_FIELDS  = ["ou-w", "ou-d", "ou-piv", "ou-ang", "ou-ang-num", "ou-x", "ou-y", "arm-sw", "arm-sw-num", "arm-x", "arm-y", "arm-bw", "arm-bh", "cam-x", "cam-y", "gl-ang", "gl-ang-num", "gl-len", "tbl-w", "tbl-d", "tbl-ang", "tbl-ang-num", "tbl-x", "tbl-y", "port-x", "port-y", "port-h", "tilt-axis-x", "tilt-axis-y", "tilt-strength", "tilt-ang", "tilt-ang-num", "tilt-lr-ang", "tilt-lr-ang-num", "rollin-arrow-len", "patient-h", "patient-x", "patient-y"];
+var INIT_SELECTS = ["tilt-type", "tilt-lr-type", "bg-mode", "patient-pose", "tbl-len-anchor"];
 var INIT_CHECKS  = ["show-guide", "show-grid", "show-dims", "show-rollin", "show-port-dist", "show-patient", "show-tilt-axis", "show-tilt-offset"];
 var INIT_KEY     = 'hinotori_init_v1';
 
@@ -4952,6 +5038,7 @@ function resetToInitial(){
   // 手術台
   s('tbl-w',  560);
   s('tbl-d', 1800);
+  var _lenAnchor = document.getElementById('tbl-len-anchor'); if(_lenAnchor) _lenAnchor.value = 'center';
   s('tbl-ang', -45); s('tbl-ang-num', -45);
   s('tbl-x',    0);
   s('tbl-y',    0);
@@ -4967,6 +5054,7 @@ function resetToInitial(){
   s('tilt-lr-ang', 0); s('tilt-lr-ang-num', 0);
   s('port-h', 500);
   s('tilt-axis-x', 0); s('tilt-axis-y', 0);
+  s('tilt-strength', 50);
   // 表示設定
   s('rollin-arrow-len', 100);
   var bgMode = document.getElementById('bg-mode');
