@@ -66,13 +66,13 @@ Built on actual OU dimensions and rotation axis data. Works on smartphones and t
 **日本語表記例：**
 ```
 川嶋 克基（金沢大学附属病院 ME機器管理センター）ほか
-hinotoriロールインシミュレーター（2027）
+hinotoriロールインシミュレーター（2026）
 https://github.com/kawashimakatsuki/hinotori-Roll-in-Simulator.App
 ```
 
 **英語表記例（論文等）：**
 ```
-Kawashima K. et al. Hinotori Roll-in Simulator (2027).
+Kawashima K. et al. Hinotori Roll-in Simulator (2026).
 [Kanazawa University Hospital], Japan.
 Available at: https://github.com/kawashimakatsuki/hinotori-Roll-in-Simulator.App
 ```
