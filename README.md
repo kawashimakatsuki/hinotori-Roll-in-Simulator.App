@@ -72,7 +72,7 @@ https://github.com/kawashimakatsuki/hinotori-Roll-in-Simulator.App
 
 **英語表記例（論文等）：**
 ```
-Kawashima K. et al. Hinotori Roll-in Simulator (2026).
+Kawashima K. et al. Hinotori Roll-in Simulator (2027).
 [Kanazawa University Hospital], Japan.
 Available at: https://github.com/kawashimakatsuki/hinotori-Roll-in-Simulator.App
 ```
