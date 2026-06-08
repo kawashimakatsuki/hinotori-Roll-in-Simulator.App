@@ -394,7 +394,7 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
         </div>
 
         <div class="f" style="margin-top:8px"><label>移動感度：1クリック / タップあたりの移動量 (mm)</label>
-          <input type="number" id="kbd-step" min="0.1" max="500" step="0.1" value="10" oninput="saveKbdStep()">
+          <input type="number" id="kbd-step" min="0.1" max="500" step="0.1" value="5" oninput="saveKbdStep()">
           <div class="ang-presets">
             <button class="ang-preset-btn kbd-step-btn" data-step="1" onclick="setKbdStep(1)">1mm</button>
             <button class="ang-preset-btn kbd-step-btn" data-step="5" onclick="setKbdStep(5)">5mm</button>
@@ -562,6 +562,7 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
     <div class="sec">
       <div class="sec-hd" onclick="toggleSec(this)"><span>🎯 カメラポート</span><span class="arr">▶</span></div>
       <div class="sec-bd">
+        <div class="f"><label>ラベル名</label><input type="text" id="port-label" value="CAM PORT" placeholder="CAM PORT" oninput="render()"></div>
         <div class="row">
           <div class="f"><label>台中心から X (mm)</label><input type="number" id="port-x" value="0" oninput="render()"></div>
           <div class="f"><label>台中心から Y (mm)</label><input type="number" id="port-y" value="0" oninput="render()"></div>
@@ -656,7 +657,14 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
             <option value="text">テキスト</option>
             <option value="cockpit">サージョンコックピット</option>
             <option value="vision">ビジョンユニット</option>
+            <option value="room">手術室</option>
           </select>
+        </div>
+        <div id="obj-size-room" style="display:none">
+          <div class="row">
+            <div class="f"><label>幅 (mm)</label><input type="number" id="obj-room-w" value="6450" min="100" max="30000"></div>
+            <div class="f"><label>奥行き (mm)</label><input type="number" id="obj-room-d" value="6850" min="100" max="30000"></div>
+          </div>
         </div>
         <div id="obj-size-unit" style="display:none">
           <div class="row">
@@ -714,7 +722,7 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
         <div class="f"><label><input type="checkbox" id="show-dims" checked onchange="render()"> 文字ラベル表示（OU/ARM BASE/CAM/CAM PORT/ポート名）</label></div>
         <div class="f"><label><input type="checkbox" id="show-rollin" checked onchange="render()"> ロールイン角・OU回転軸表示</label></div>
         <div class="f"><label><input type="checkbox" id="show-tilt-axis" checked onchange="render()"> 傾斜：回転軸を表示</label></div>
-        <div class="f"><label><input type="checkbox" id="show-tilt-offset" checked onchange="render()"> 傾斜：補正移動量を表示</label></div>
+        <div class="f"><label><input type="checkbox" id="show-tilt-offset" onchange="render()"> 傾斜：補正移動距離を表示</label></div>
         <div class="f"><label><input type="checkbox" id="show-port-dist" checked onchange="render()"> ポート間距離を表示 (cm)</label></div>
         <div class="f"><label>ロールイン角 矢印の長さ (px)</label><input type="number" id="rollin-arrow-len" value="100" min="10" max="300" oninput="render()"></div>
         <div class="f"><label>背景色</label>
@@ -867,15 +875,15 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
     <details class="help-credit" style="margin-top:16px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
       <summary style="cursor:pointer;font-weight:600;font-size:12px;padding:10px 12px;background:rgba(255,255,255,0.04);user-select:none">ⓘ クレジット・お問い合わせ</summary>
       <div style="font-size:12px;line-height:1.75;padding:12px 14px;color:var(--text)">
-        開発者：川嶋 克基（金沢大学附属病院 ME機器管理センター）<br>
+        開発者：川嶋 克典（○○病院 臨床工学科）<br>
         Version 1.0.0<br>
-        © 2026 川嶋 克基<br>
+        © 2026 川嶋 克典<br>
         ライセンス：CC BY-NC 4.0<br>
         <br>
         学会発表：「hinotoriロールインシミュレーターの開発」<br>
-        第19回 日本ロボット外科学会学術集会（2027年2月）<br>
+        第○回 日本ロボット外科学会学術集会（2026年2月）<br>
         <br>
-        お問い合わせ：<span style="color:var(--accent)">kawashimakatsuki.ce@gmail.com</span><br>
+        お問い合わせ：<span style="color:var(--accent)">xxxxxxxx@xxxxxx.jp</span><br>
         <br>
         <span style="color:var(--muted);font-size:11px">本シミュレーターは教育・イメージ共有を目的としたツールです。実際の手術における判断は必ず実機および施設のプロトコルに従ってください。本ツールの使用により生じたいかなる損害についても開発者は責任を負いません。</span>
       </div>
@@ -1249,6 +1257,7 @@ function resetPatientSection(){   // 患者（表示ON/OFFは維持）
   render();
 }
 function resetPortSection(){   // カメラポート
+  _secSet('port-label','CAM PORT');
   _secSet('port-x',0); _secSet('port-y',0);
   render();
 }
@@ -1593,12 +1602,21 @@ function onObjTypeChange(){
   document.getElementById('obj-size-circle').style.display = t==='circle' ? '' : 'none';
   document.getElementById('obj-size-text').style.display   = t==='text'   ? '' : 'none';
   var u = document.getElementById('obj-size-unit'); if(u) u.style.display = isUnit ? '' : 'none';
+  var rm = document.getElementById('obj-size-room'); if(rm) rm.style.display = t==='room' ? '' : 'none';
   if(isUnit){
     var uw=document.getElementById('obj-uw'), uh=document.getElementById('obj-uh');
     if(uw&&uh){
       if(t==='cockpit'){ uw.value=940; uh.value=1160; }   // サージョンコックピット
       else if(t==='vision'){ uw.value=760; uh.value=935; } // ビジョンユニット（液晶モニタ除く本体）
     }
+  }
+  if(t==='room'){
+    // 手術室：初期値 幅6450 / 奥行き6850、枠のみ、オレンジ
+    var rw=document.getElementById('obj-room-w'), rd=document.getElementById('obj-room-d');
+    if(rw) rw.value=6450; if(rd) rd.value=6850;
+    var col=document.getElementById('obj-color'); if(col) col.value='#f97316';
+    var scol=document.getElementById('obj-stroke-color'); if(scol) scol.value='#f97316';
+    var fn=document.getElementById('obj-fill-none'); if(fn && !fn.checked){ fn.checked=true; onObjFillNone(); }
   }
 }
 
@@ -1625,6 +1643,9 @@ function addCustomObj(savePreset){
   } else if(t==='cockpit' || t==='vision'){
     obj.w = parseFloat(document.getElementById('obj-uw').value)|| (t==='cockpit'?940:760);
     obj.h = parseFloat(document.getElementById('obj-uh').value)|| (t==='cockpit'?1160:935);
+  } else if(t==='room'){
+    obj.w = parseFloat(document.getElementById('obj-room-w').value)||6450;
+    obj.h = parseFloat(document.getElementById('obj-room-d').value)||6850;
   }
   customObjs.push(obj);
   renderObjList();
@@ -1656,7 +1677,7 @@ function renderObjList(){
   if(!el) return;
   if(!customObjs.length){ el.innerHTML='<div style="font-size:10px;color:var(--muted)">配置なし</div>'; return; }
   el.innerHTML = customObjs.map(function(o){
-    var name = o.label || (o.type==='rect'?'四角形':o.type==='circle'?'円':o.type==='cockpit'?'サージョンコックピット':o.type==='vision'?'ビジョンユニット':o.text||'テキスト');
+    var name = o.label || (o.type==='rect'?'四角形':o.type==='circle'?'円':o.type==='cockpit'?'サージョンコックピット':o.type==='vision'?'ビジョンユニット':o.type==='room'?'手術室':o.text||'テキスト');
     return '<div class="obj-item"><span class="obj-item-label">'+name+' <span style="color:var(--muted);font-size:10px">('+Math.round(o.ang||0)+'°)</span></span>'
       + '<button class="obj-del-btn" onclick="rotateCustomObj('+o.id+',-15)" title="左に15°回転">↺</button>'
       + '<button class="obj-del-btn" onclick="rotateCustomObj('+o.id+',15)" title="右に15°回転">↻</button>'
@@ -1672,7 +1693,16 @@ function getCustomObjAt(wx, wy){
     var hit=false;
     var fillNone = (o.opacity===0 || o.opacity==='0');
     var margin = 20; // タッチ余白
-    if(o.type==='rect'){
+    if(o.type==='room'){
+      // 手術室：枠付近のみ選択可能（広い室内全体は掴まない）
+      var ar=d2r(o.ang);
+      var lxr= dx*Math.cos(ar)+dy*Math.sin(ar);
+      var lyr=-dx*Math.sin(ar)+dy*Math.cos(ar);
+      var swr=(o.strokeWidth||2)+margin;
+      var inOuterR = Math.abs(lxr)<=o.w/2+margin && Math.abs(lyr)<=o.h/2+margin;
+      var inInnerR = Math.abs(lxr)<=o.w/2-swr && Math.abs(lyr)<=o.h/2-swr;
+      hit = inOuterR && !inInnerR;
+    } else if(o.type==='rect'){
       var a=d2r(o.ang);
       var lx= dx*Math.cos(a)+dy*Math.sin(a);
       var ly=-dx*Math.sin(a)+dy*Math.cos(a);
@@ -1724,7 +1754,7 @@ function drawCustomObjs(dark){
     ctx.fillStyle   = o.color;
     ctx.globalAlpha = op / 100;
     ctx.lineWidth   = sw;
-    if(o.type==='rect'){
+    if(o.type==='rect' || o.type==='room'){
       var rw = o.w*VIEW.sc, rh = o.h*VIEW.sc;
       // 塗り（透明度あり）
       ctx.beginPath(); ctx.rect(-rw/2,-rh/2,rw,rh);
@@ -1858,10 +1888,16 @@ function checkCollisions(){
   // オブジェクトとの接触
   customObjs && customObjs.forEach(function(o){
     if(o.type==='text') return;
-    var name = o.label || (o.type==='rect'?'四角形':o.type==='cockpit'?'サージョンコックピット':o.type==='vision'?'ビジョンユニット':'円');
+    var name = o.label || (o.type==='rect'?'四角形':o.type==='cockpit'?'サージョンコックピット':o.type==='vision'?'ビジョンユニット':o.type==='room'?'手術室':'円');
     var hit = corners.some(function(c){
       var dx=c.x-o.x, dy=c.y-o.y;
-      if(o.type==='rect' || o.type==='cockpit' || o.type==='vision'){
+      if(o.type==='room'){
+        // 手術室：OUが枠（壁）に接触・はみ出した時のみ接触とする（内部に収まっていれば接触なし）
+        var ar=d2r(o.ang);
+        var lxr= dx*Math.cos(ar)+dy*Math.sin(ar);
+        var lyr=-dx*Math.sin(ar)+dy*Math.cos(ar);
+        return Math.abs(lxr)>=o.w/2 || Math.abs(lyr)>=o.h/2;
+      } else if(o.type==='rect' || o.type==='cockpit' || o.type==='vision'){
         var a=d2r(o.ang);
         var lx= dx*Math.cos(a)+dy*Math.sin(a);
         var ly=-dx*Math.sin(a)+dy*Math.cos(a);
@@ -2693,8 +2729,10 @@ function drawPortMarker(port,portRaw,dark){
   ctx.beginPath();ctx.arc(pc.x,pc.y,sz*0.7,0,Math.PI*2);
   ctx.strokeStyle='#2563eb';ctx.lineWidth=2;ctx.stroke();
   if(gc('show-dims')){
+    var _pl=document.getElementById('port-label');
+    var _plt=(_pl && _pl.value.trim()!=='') ? _pl.value.trim() : 'CAM PORT';
     ctx.font='bold 10px sans-serif';ctx.fillStyle='#2563eb';
-    ctx.textAlign='center';ctx.fillText('CAM PORT',pc.x,pc.y-sz-4);
+    ctx.textAlign='center';ctx.fillText(_plt,pc.x,pc.y-sz-4);
   }
 }
 
@@ -3094,6 +3132,9 @@ cvs.addEventListener('mousedown',e=>{
     return;
   }
 
+  // タップ配置モード（クリックした場所にオブジェクトを配置）
+  if(typeof placeObjAt === 'function' && placeObjAt(wp.x, wp.y)) return;
+
   drag.active=true;drag.moved=false;
   drag.sx=e.clientX;drag.sy=e.clientY;
   drag.ox=VIEW.px;drag.oy=VIEW.py;
@@ -3256,7 +3297,8 @@ cvs.addEventListener('click',function(e){
   if(typeof customObjs!=='undefined'){
     for(var i=customObjs.length-1;i>=0;i--){
       var o=customObjs[i],dx=wx-o.x,dy=wy-o.y,h=false;
-      if(o.type==='rect'){var r=(o.ang||0)*Math.PI/180,lx=dx*Math.cos(r)+dy*Math.sin(r),ly=-dx*Math.sin(r)+dy*Math.cos(r);h=Math.abs(lx)<=(o.w||200)/2+20&&Math.abs(ly)<=(o.h||200)/2+20;}
+      if(o.type==='room'){var rR=(o.ang||0)*Math.PI/180,lxR=dx*Math.cos(rR)+dy*Math.sin(rR),lyR=-dx*Math.sin(rR)+dy*Math.cos(rR),swR=(o.strokeWidth||2)+20;h=(Math.abs(lxR)<=(o.w||6450)/2+20&&Math.abs(lyR)<=(o.h||6850)/2+20)&&!(Math.abs(lxR)<=(o.w||6450)/2-swR&&Math.abs(lyR)<=(o.h||6850)/2-swR);}
+      else if(o.type==='rect'){var r=(o.ang||0)*Math.PI/180,lx=dx*Math.cos(r)+dy*Math.sin(r),ly=-dx*Math.sin(r)+dy*Math.cos(r);h=Math.abs(lx)<=(o.w||200)/2+20&&Math.abs(ly)<=(o.h||200)/2+20;}
       else if(o.type==='circle'){h=Math.sqrt(dx*dx+dy*dy)<=(o.r||200)/2+20;}
       else if(o.type==='text'){h=Math.abs(dx)<=(o.fontSize||100)*2&&Math.abs(dy)<=(o.fontSize||100);}
       else if(o.type==='cockpit'||o.type==='vision'){var ru=(o.ang||0)*Math.PI/180,lxu=dx*Math.cos(ru)+dy*Math.sin(ru),lyu=-dx*Math.sin(ru)+dy*Math.cos(ru);h=Math.abs(lxu)<=(o.w||970)/2+20&&Math.abs(lyu)<=(o.h||1150)/2+20;}
@@ -3820,7 +3862,7 @@ const DEFAULT_CHECKS = [
   {id:'show-dims',   label:'文字ラベル表示'},
   {id:'show-rollin',      label:'ロールイン角表記'},
   {id:'show-tilt-axis',   label:'傾斜：回転軸表示'},
-  {id:'show-tilt-offset', label:'傾斜：補正移動量表示'},
+  {id:'show-tilt-offset', label:'傾斜：補正移動距離表示'},
   {id:'show-guide',  label:'ガイド線表示'},
 ];
 
@@ -4394,7 +4436,7 @@ function slStep(id, mn, mx, step, dir){
 
 
 // ===== カスタム初期設定 =====
-var INIT_FIELDS  = ["ou-w", "ou-d", "ou-piv", "ou-ang", "ou-ang-num", "ou-x", "ou-y", "arm-sw", "arm-sw-num", "arm-x", "arm-y", "arm-bw", "arm-bh", "cam-x", "cam-y", "gl-ang", "gl-ang-num", "gl-len", "tbl-w", "tbl-d", "tbl-ang", "tbl-ang-num", "tbl-x", "tbl-y", "port-x", "port-y", "port-h", "tilt-axis-x", "tilt-axis-y", "tilt-strength", "tilt-ang", "tilt-ang-num", "tilt-lr-ang", "tilt-lr-ang-num", "rollin-arrow-len", "patient-h", "patient-x", "patient-y"];
+var INIT_FIELDS  = ["ou-w", "ou-d", "ou-piv", "ou-ang", "ou-ang-num", "ou-x", "ou-y", "arm-sw", "arm-sw-num", "arm-x", "arm-y", "arm-bw", "arm-bh", "cam-x", "cam-y", "gl-ang", "gl-ang-num", "gl-len", "tbl-w", "tbl-d", "tbl-ang", "tbl-ang-num", "tbl-x", "tbl-y", "port-label", "port-x", "port-y", "port-h", "tilt-axis-x", "tilt-axis-y", "tilt-strength", "tilt-ang", "tilt-ang-num", "tilt-lr-ang", "tilt-lr-ang-num", "rollin-arrow-len", "patient-h", "patient-x", "patient-y"];
 var INIT_SELECTS = ["tilt-type", "tilt-lr-type", "bg-mode", "patient-pose", "tbl-len-anchor"];
 var INIT_CHECKS  = ["show-guide", "show-grid", "show-dims", "show-rollin", "show-port-dist", "show-patient", "show-tilt-axis", "show-tilt-offset"];
 var INIT_KEY     = 'hinotori_init_v1';
@@ -4530,6 +4572,7 @@ function applyObjPreset(idx){
   else if(o.type==='circle'){ s('obj-r',o.r||200); }
   else if(o.type==='text'){ s('obj-text',o.text||''); s('obj-font-size',o.fontSize||100); }
   else if(o.type==='cockpit'||o.type==='vision'){ s('obj-uw',o.w||970); s('obj-uh',o.h||1150); }
+  else if(o.type==='room'){ s('obj-room-w',o.w||6450); s('obj-room-d',o.h||6850); }
   s('obj-ang', o.ang||0);
 }
 
@@ -5138,6 +5181,7 @@ function resetToInitial(){
   s('tbl-x',    0);
   s('tbl-y',    0);
   // カメラポート
+  s('port-label', 'CAM PORT');
   s('port-x', 0);
   s('port-y', 0);
   // 傾斜補正
