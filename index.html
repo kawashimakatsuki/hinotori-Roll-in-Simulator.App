@@ -300,6 +300,7 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
 .ang-presets{display:flex;gap:3px;margin-top:4px;flex-wrap:wrap;}
 .ang-preset-btn{padding:3px 8px;background:var(--surf2);border:1px solid var(--border);border-radius:5px;color:var(--muted);font-size:10px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;}
 .ang-preset-btn:active{background:var(--accent);color:#000;border-color:var(--accent);}
+.kbd-step-btn.btn-active{background:var(--accent);color:#000;border-color:var(--accent);}
 
 
 #place-mode-btn.active{border-color:#00d4ff!important;color:#00d4ff!important;background:rgba(0,212,255,0.15);}
@@ -392,10 +393,20 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
           <div class="f"><label>Y位置 (mm)</label><input type="number" id="ou-y" value="-1836.3" oninput="render()"></div>
         </div>
 
+        <div class="f" style="margin-top:8px"><label>移動感度：1クリック / タップあたりの移動量 (mm)</label>
+          <input type="number" id="kbd-step" min="0.1" max="500" step="0.1" value="10" oninput="saveKbdStep()">
+          <div class="ang-presets">
+            <button class="ang-preset-btn kbd-step-btn" data-step="1" onclick="setKbdStep(1)">1mm</button>
+            <button class="ang-preset-btn kbd-step-btn" data-step="5" onclick="setKbdStep(5)">5mm</button>
+            <button class="ang-preset-btn kbd-step-btn" data-step="10" onclick="setKbdStep(10)">10mm</button>
+            <button class="ang-preset-btn kbd-step-btn" data-step="50" onclick="setKbdStep(50)">50mm</button>
+          </div>
+        </div>
+
               <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px">
           <div style="font-size:10px;color:var(--muted);margin-bottom:5px">⭐ OUプリセット</div>
           <div style="display:flex;gap:4px;margin-bottom:5px">
-            <input type="text" id="preset-name" placeholder="プリセット名" style="flex:1;min-width:0">
+            <input type="text" id="preset-name" placeholder="OUプリセット名" style="flex:1;min-width:0">
             <button class="btn btn-acc" onclick="saveOUCamPreset()">💾 保存</button>
           </div>
           <div id="ou-cam-preset-list"></div>
@@ -856,15 +867,15 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
     <details class="help-credit" style="margin-top:16px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
       <summary style="cursor:pointer;font-weight:600;font-size:12px;padding:10px 12px;background:rgba(255,255,255,0.04);user-select:none">ⓘ クレジット・お問い合わせ</summary>
       <div style="font-size:12px;line-height:1.75;padding:12px 14px;color:var(--text)">
-        開発者：川嶋 克基（金沢大学附属病院 ME機器管理センター）<br>
+        開発者：川嶋 克典（○○病院 臨床工学科）<br>
         Version 1.0.0<br>
-        © 2026 川嶋 克基<br>
+        © 2026 川嶋 克典<br>
         ライセンス：CC BY-NC 4.0<br>
         <br>
         学会発表：「hinotoriロールインシミュレーターの開発」<br>
-        第19回 日本ロボット外科学会学術集会（2027年2月）<br>
+        第○回 日本ロボット外科学会学術集会（2026年2月）<br>
         <br>
-        お問い合わせ：<span style="color:var(--accent)">kawashimakatsuki.ce@gmail.com</span><br>
+        お問い合わせ：<span style="color:var(--accent)">xxxxxxxx@xxxxxx.jp</span><br>
         <br>
         <span style="color:var(--muted);font-size:11px">本シミュレーターは教育・イメージ共有を目的としたツールです。実際の手術における判断は必ず実機および施設のプロトコルに従ってください。本ツールの使用により生じたいかなる損害についても開発者は責任を負いません。</span>
       </div>
@@ -1370,6 +1381,30 @@ function applyKbdMove(){
   render();
 }
 
+// ====== OU移動感度（1クリック/タップあたりの移動量 mm） ======
+function highlightKbdStep(){
+  var el=document.getElementById('kbd-step'); if(!el) return;
+  var v=parseFloat(el.value);
+  document.querySelectorAll('.kbd-step-btn').forEach(function(b){
+    b.classList.toggle('btn-active', parseFloat(b.dataset.step)===v);
+  });
+}
+function saveKbdStep(){
+  var el=document.getElementById('kbd-step'); if(!el) return;
+  try{ localStorage.setItem('hinotori_kbd_step', el.value); }catch(e){}
+  highlightKbdStep();
+}
+function setKbdStep(v){
+  var el=document.getElementById('kbd-step'); if(!el) return;
+  el.value=v; saveKbdStep();
+}
+function loadKbdStep(){
+  var el=document.getElementById('kbd-step'); if(!el) return;
+  try{ var s=localStorage.getItem('hinotori_kbd_step'); if(s!==null && s!=='') el.value=s; }catch(e){}
+  highlightKbdStep();
+}
+document.addEventListener('DOMContentLoaded', loadKbdStep);
+
 // ====== カメラ・ポート ======
 function getCam(){
   const sw=d2r(gv('arm-sw')),ouA=d2r(gv('ou-ang'));
@@ -1381,7 +1416,7 @@ function getCam(){
 
 // 傾斜補正：回転軸からの符号付き距離(Lx,Ly)と高さHによる剛体回転の平面移動量(テーブルローカルmm)
 // 回転軸の直上にポートが無い場合も考慮。Ly=頭足方向距離, Lx=左右方向距離（傾斜前）
-// 傾斜表現の強さ（0〜1）。100%=従来の剛体回転、低いほど伸縮・ポート移動を緩く表示
+// 傾斜表現の強さ（0〜1）。低いほど伸縮・ポート移動を緩く表示
 function tiltStrength(){
   const e=document.getElementById('tilt-strength');
   return (e && e.value!=='') ? ((parseFloat(e.value)||0)/100) : 1;
@@ -4648,7 +4683,7 @@ function loadOUCamPresets(){
 function saveOUCamPreset(){
   var nameEl = document.getElementById('preset-name');
   var name = nameEl ? nameEl.value.trim() : '';
-  if(!name){ alert('プリセット名を入力してください'); return; }
+  if(!name){ alert('OUプリセット名を入力してください'); return; }
   var data = {};
   OU_CAM_FIELDS.forEach(function(id){
     var el = document.getElementById(id);
@@ -4699,7 +4734,7 @@ function renderOUCamPresets(){
   var el = document.getElementById('ou-cam-preset-list'); if(!el) return;
   var presets = loadOUCamPresets();
   if(!presets.length){
-    el.innerHTML = '<div style="font-size:10px;color:var(--muted)">保存済みプリセットなし</div>';
+    el.innerHTML = '<div style="font-size:10px;color:var(--muted)">保存済みOUプリセットなし</div>';
     return;
   }
   el.innerHTML = presets.map(function(p,i){
@@ -5115,6 +5150,11 @@ function resetToInitial(){
   s('port-h', 500);
   s('tilt-axis-x', 0); s('tilt-axis-y', 0);
   s('tilt-strength', 50);
+  // 患者
+  s('patient-h', 170);
+  var _pPose = document.getElementById('patient-pose'); if(_pPose) _pPose.value = 'supine';
+  s('patient-x', 0); s('patient-y', 0);
+  var _showPat = document.getElementById('show-patient'); if(_showPat) _showPat.checked = false;
   // 表示設定
   s('rollin-arrow-len', 100);
   var bgMode = document.getElementById('bg-mode');
