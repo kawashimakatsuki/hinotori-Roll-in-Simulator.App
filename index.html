@@ -718,6 +718,14 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
         </div>
         <div id="obj-presets" style="margin-top:6px"></div>
         <div id="obj-list" style="margin-top:8px"></div>
+        <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:5px">🗂 オブジェクト配置の保存（現在の配置をまとめて保存）</div>
+          <div style="display:flex;gap:4px;margin-bottom:5px">
+            <input type="text" id="obj-layout-name" placeholder="配置名" style="flex:1;min-width:0">
+            <button class="btn btn-acc" onclick="saveObjLayout()">💾 保存</button>
+          </div>
+          <div id="obj-layout-list"></div>
+        </div>
       </div>
     </div>
 
@@ -882,15 +890,15 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
     <details class="help-credit" style="margin-top:16px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
       <summary style="cursor:pointer;font-weight:600;font-size:12px;padding:10px 12px;background:rgba(255,255,255,0.04);user-select:none">ⓘ クレジット・お問い合わせ</summary>
       <div style="font-size:12px;line-height:1.75;padding:12px 14px;color:var(--text)">
-        開発者：川嶋 克基（金沢大学附属病院 ME機器管理センター）<br>
-        Version 1.0.3<br>
-        © 2026 川嶋 克基<br>
+        開発者：川嶋 克典（○○病院 臨床工学科）<br>
+        Version 1.0.0<br>
+        © 2026 川嶋 克典<br>
         ライセンス：CC BY-NC 4.0<br>
         <br>
         学会発表：「hinotoriロールインシミュレーターの開発」<br>
-        第19回 日本ロボット外科学会学術集会（2027年2月）<br>
+        第○回 日本ロボット外科学会学術集会（2026年2月）<br>
         <br>
-        お問い合わせ：<span style="color:var(--accent)">kawashimakatsuki.ce@gmail.com</span><br>
+        お問い合わせ：<span style="color:var(--accent)">xxxxxxxx@xxxxxx.jp</span><br>
         <br>
         <span style="color:var(--muted);font-size:11px">本シミュレーターは教育・イメージ共有を目的としたツールです。実際の手術における判断は必ず実機および施設のプロトコルに従ってください。本ツールの使用により生じたいかなる損害についても開発者は責任を負いません。</span>
       </div>
@@ -4866,7 +4874,73 @@ function renderOUCamPresets(){
   }).join('');
 }
 
-
+// ===== オブジェクト配置の保存（現在配置されている全オブジェクトをまとめて保存/読込） =====
+var OBJ_LAYOUT_KEY = 'hinotori_obj_layouts_v1';
+function loadObjLayouts(){
+  try{ return JSON.parse(localStorage.getItem(OBJ_LAYOUT_KEY)||'[]'); }catch(e){ return []; }
+}
+function saveObjLayout(){
+  var nameEl=document.getElementById('obj-layout-name');
+  var name=nameEl?nameEl.value.trim():'';
+  if(!name){ alert('配置名を入力してください'); return; }
+  if(typeof customObjs==='undefined' || !customObjs.length){ alert('保存できる配置がありません（オブジェクトを配置してください）'); return; }
+  var objs; try{ objs=JSON.parse(JSON.stringify(customObjs)); }catch(e){ objs=[]; }
+  var layouts=loadObjLayouts();
+  layouts.push({name:name, locked:false, objs:objs});
+  try{
+    localStorage.setItem(OBJ_LAYOUT_KEY, JSON.stringify(layouts));
+    if(nameEl) nameEl.value='';
+    renderObjLayouts();
+    alert('配置「'+name+'」を保存しました（'+objs.length+'個）');
+  }catch(e){ alert('保存失敗: '+e.message); }
+}
+function applyObjLayout(idx){
+  var layouts=loadObjLayouts();
+  var L=layouts[idx]; if(!L) return;
+  if(typeof customObjs!=='undefined' && customObjs.length){
+    var ok=true; if(typeof confirm!=='undefined'){ try{ ok=confirm('現在配置中のオブジェクトを、この保存配置で置き換えます。よろしいですか？'); }catch(e){ ok=true; } }
+    if(!ok) return;
+  }
+  var objs; try{ objs=JSON.parse(JSON.stringify(L.objs||[])); }catch(e){ objs=[]; }
+  customObjs = objs;
+  if(typeof nextObjId!=='undefined'){ nextObjId = customObjs.reduce(function(m,o){ return Math.max(m, o.id||0); }, 0) + 1; }
+  if(typeof renderObjList==='function') renderObjList();
+  if(typeof refreshColorPickers==='function') refreshColorPickers();
+  render();
+  if(typeof pushState==='function') pushState();
+}
+function toggleObjLayoutLock(idx){
+  var layouts=loadObjLayouts();
+  if(!layouts[idx]) return;
+  layouts[idx].locked=!layouts[idx].locked;
+  localStorage.setItem(OBJ_LAYOUT_KEY, JSON.stringify(layouts));
+  renderObjLayouts();
+}
+function deleteObjLayout(idx){
+  var layouts=loadObjLayouts();
+  if(!layouts[idx]) return;
+  if(layouts[idx].locked){ alert('ロックされています。🔒を解除してから削除してください'); return; }
+  var ok=true; if(typeof confirm!=='undefined'){ try{ ok=confirm('配置「'+layouts[idx].name+'」を削除しますか？'); }catch(e){ ok=true; } }
+  if(!ok) return;
+  layouts.splice(idx,1);
+  localStorage.setItem(OBJ_LAYOUT_KEY, JSON.stringify(layouts));
+  renderObjLayouts();
+}
+function renderObjLayouts(){
+  var el=document.getElementById('obj-layout-list'); if(!el) return;
+  var layouts=loadObjLayouts();
+  if(!layouts.length){ el.innerHTML='<div style="font-size:10px;color:var(--muted)">保存済み配置なし</div>'; return; }
+  el.innerHTML=layouts.map(function(L,i){
+    var locked=L.locked; var cnt=(L.objs&&L.objs.length)||0;
+    return '<div class="preset-item'+(locked?' locked':'')+'">'
+      + '<button class="btn btn-sm" onclick="applyObjLayout('+i+')" style="font-size:10px;padding:2px 7px;flex-shrink:0">読込</button>'
+      + '<span class="preset-item-name" style="cursor:default">'+L.name+' <span style="color:var(--muted);font-size:10px">('+cnt+'個)</span></span>'
+      + '<button class="preset-lock-btn" onclick="toggleObjLayoutLock('+i+')" title="'+(locked?'ロック解除':'ロック')+'">'+(locked?'🔒':'🔓')+'</button>'
+      + '<button class="preset-del-btn" onclick="deleteObjLayout('+i+')" title="削除" style="'+(locked?'opacity:0.3;pointer-events:none':'')+'">✕</button>'
+      + '</div>';
+  }).join('');
+}
+document.addEventListener('DOMContentLoaded', renderObjLayouts);
 
 function onObjFillNone(){
   var cb = document.getElementById('obj-fill-none');
