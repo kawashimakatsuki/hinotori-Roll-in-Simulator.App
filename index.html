@@ -488,7 +488,7 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
         </div>
         <div class="f"><label>長さ変更の基準</label>
           <select id="tbl-len-anchor" onchange="onTblLenChange()">
-            <option value="center">中央基準（両側均等・従来）</option>
+            <option value="center">中央基準（両側均等）</option>
             <option value="head">頭側で伸縮（尾側端を固定）</option>
             <option value="foot">尾側で伸縮（頭側端を固定）</option>
           </select>
@@ -598,7 +598,7 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
         <div class="f"><label>回転軸〜カメラポート腹壁 高さ H (mm)</label><input type="number" id="port-h" value="500" min="0" max="2000" oninput="render()"></div>
         <div class="f"><label>回転軸 頭足方向位置 (mm, ＋頭側／－足側)</label><input type="number" id="tilt-axis-y" value="0" step="10" oninput="render()"></div>
         <div class="f"><label>回転軸 左右方向位置 (mm, ＋左／－右)</label><input type="number" id="tilt-axis-x" value="0" step="10" oninput="render()"></div>
-        <div class="f"><label>傾斜表現の強さ (%)　<span style="color:var(--muted);font-size:9px">100=従来 / 低いほど緩く</span></label><input type="number" id="tilt-strength" value="50" min="0" max="100" step="5" oninput="render()"></div>
+        <div class="f"><label>傾斜表現の強さ (%)　<span style="color:var(--muted);font-size:9px">低いほど緩く</span></label><input type="number" id="tilt-strength" value="50" min="0" max="100" step="5" oninput="render()"></div>
         <div id="tilt-info" style="font-size:10px;color:var(--accent);margin:2px 0 6px"></div>
         <div class="f"><label>傾斜種別</label>
           <select id="tilt-type" onchange="render()">
