@@ -301,6 +301,11 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
 .ang-preset-btn{padding:3px 8px;background:var(--surf2);border:1px solid var(--border);border-radius:5px;color:var(--muted);font-size:10px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;}
 .ang-preset-btn:active{background:var(--accent);color:#000;border-color:var(--accent);}
 .kbd-step-btn.btn-active{background:var(--accent);color:#000;border-color:var(--accent);}
+.used-colors{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;align-items:center}
+.used-colors .uc-label{font-size:9px;color:var(--muted);margin-right:2px}
+.used-colors .uc-swatch{width:20px;height:20px;border-radius:4px;border:1px solid rgba(255,255,255,0.3);cursor:pointer;padding:0;flex-shrink:0}
+.used-colors .uc-swatch:active{outline:2px solid var(--accent)}
+.used-colors .uc-empty{font-size:9px;color:var(--muted)}
 
 
 #place-mode-btn.active{border-color:#00d4ff!important;color:#00d4ff!important;background:rgba(0,212,255,0.15);}
@@ -600,6 +605,7 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
             <input type="number" id="new-port-size" value="12" min="5" max="30">
           </div>
         </div>
+        <div id="port-used-colors" class="used-colors"></div>
         <div class="port-list" id="port-list"></div>
       </div>
     </div>
@@ -690,6 +696,7 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
           <div class="f"><label>塗り色</label><input type="color" id="obj-color" value="#f97316" style="width:60px;height:32px;padding:2px"></div>
           <div class="f"><label>枠線色</label><input type="color" id="obj-stroke-color" value="#f97316" style="width:60px;height:32px;padding:2px"></div>
         </div>
+        <div id="obj-used-colors" class="used-colors"></div>
         <div class="row">
           <div class="f"><label>枠線幅 (px)</label><input type="number" id="obj-stroke-width" value="2" min="0" max="20"></div>
           <div class="f"><label>塗り透明度 (%)</label><input type="number" id="obj-opacity" value="20" min="0" max="100"></div>
@@ -875,15 +882,15 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
     <details class="help-credit" style="margin-top:16px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
       <summary style="cursor:pointer;font-weight:600;font-size:12px;padding:10px 12px;background:rgba(255,255,255,0.04);user-select:none">ⓘ クレジット・お問い合わせ</summary>
       <div style="font-size:12px;line-height:1.75;padding:12px 14px;color:var(--text)">
-        開発者：川嶋 克基（金沢大学附属病院 ME機器管理センター）<br>
-        Version 1.0.1<br>
-        © 2026 川嶋 克基<br>
+        開発者：川嶋 克典（○○病院 臨床工学科）<br>
+        Version 1.0.0<br>
+        © 2026 川嶋 克典<br>
         ライセンス：CC BY-NC 4.0<br>
         <br>
         学会発表：「hinotoriロールインシミュレーターの開発」<br>
-        第19回 日本ロボット外科学会学術集会（2026年2月）<br>
+        第○回 日本ロボット外科学会学術集会（2026年2月）<br>
         <br>
-        お問い合わせ：<span style="color:var(--accent)">kawashimakatsuki.ce@gmail.com</span><br>
+        お問い合わせ：<span style="color:var(--accent)">xxxxxxxx@xxxxxx.jp</span><br>
         <br>
         <span style="color:var(--muted);font-size:11px">本シミュレーターは教育・イメージ共有を目的としたツールです。実際の手術における判断は必ず実機および施設のプロトコルに従ってください。本ツールの使用により生じたいかなる損害についても開発者は責任を負いません。</span>
       </div>
@@ -943,6 +950,64 @@ function c2w(cx,cy){return{x:(cx-cvs.width/2-VIEW.px)/VIEW.sc,y:-(cy-cvs.height/
 let extraPorts = []; // {id, label, color, size, x, y} ワールド座標
 let addPortMode = false;
 let nextPortId = 1;
+// 追加ポートの採番：既に配置があれば最大番号+1、1つも無ければ1から
+function nextPortNum(){
+  return extraPorts.length ? Math.max.apply(null, extraPorts.map(function(p){return p.id;}))+1 : 1;
+}
+
+// ===== 使用中の色パレット（既存ポート・オブジェクトで使っている色をワンクリック流用） =====
+function getUsedColors(){
+  var set=[];
+  function add(c){ if(!c) return; c=(''+c).toLowerCase(); if(set.indexOf(c)===-1) set.push(c); }
+  (typeof extraPorts!=='undefined'?extraPorts:[]).forEach(function(p){ add(p.color); });
+  (typeof customObjs!=='undefined'?customObjs:[]).forEach(function(o){ add(o.color); add(o.strokeColor); });
+  return set;
+}
+function setPortColor(c){
+  var sel=document.getElementById('new-port-color'); if(!sel) return;
+  var found=false;
+  for(var i=0;i<sel.options.length;i++){ if(sel.options[i].value.toLowerCase()===c.toLowerCase()){ sel.selectedIndex=i; found=true; break; } }
+  if(!found){ var opt=document.createElement('option'); opt.value=c; opt.textContent='使用中の色'; sel.appendChild(opt); sel.value=c; }
+}
+function setObjColor(c){
+  var f=document.getElementById('obj-color'); if(f) f.value=c;
+  var s=document.getElementById('obj-stroke-color'); if(s) s.value=c;
+}
+function renderUsedColorSwatches(){
+  var cols=getUsedColors();
+  [['port-used-colors', setPortColor],['obj-used-colors', setObjColor]].forEach(function(pair){
+    var el=document.getElementById(pair[0]); if(!el) return;
+    if(!cols.length){ el.innerHTML='<span class="uc-empty">（使用中の色なし）</span>'; return; }
+    var html='<span class="uc-label">使用中の色:</span>';
+    html+=cols.map(function(c){ return '<button type="button" class="uc-swatch" style="background:'+c+'" title="'+c+'" data-c="'+c+'"></button>'; }).join('');
+    el.innerHTML=html;
+    el.querySelectorAll('.uc-swatch').forEach(function(b){ b.onclick=function(){ pair[1](b.getAttribute('data-c')); }; });
+  });
+}
+// 配置済みリストの各アイテム用：使用中の色スウォッチHTML（onclick で fnName(id,'色') を呼ぶ）
+function usedColorSwatchesHTML(fnName, id){
+  var cols=getUsedColors();
+  if(!cols.length) return '';
+  return '<div class="used-colors" style="width:100%;margin-top:3px"><span class="uc-label">使用中の色:</span>'
+    + cols.map(function(c){ return '<button type="button" class="uc-swatch" title="'+c+'" style="background:'+c+'" onclick="'+fnName+'('+id+",'"+c+"')\"></button>"; }).join('')
+    + '</div>';
+}
+// 追加ポートの色を使用中色で更新（リストも再描画して反映）
+function setExtraPortColor(id, c){
+  var p=(typeof extraPorts!=='undefined'?extraPorts:[]).find(function(q){return q.id===id;});
+  if(!p) return; p.color=c; refreshColorPickers(); render(); if(typeof pushState==='function') pushState();
+}
+// 配置済みオブジェクトの色を更新（塗り・枠線とも）
+function updateCustomObjColor(id, c){
+  var o=(typeof customObjs!=='undefined'?customObjs:[]).find(function(x){return x.id===id;});
+  if(!o) return; o.color=c; o.strokeColor=c; refreshColorPickers(); render(); if(typeof pushState==='function') pushState();
+}
+// 両リスト（ポート・オブジェクト）を再描画し、使用中色スウォッチを最新化（相互参照なので再帰しない）
+function refreshColorPickers(){
+  if(typeof renderPortList==='function') renderPortList();
+  if(typeof renderObjList==='function') renderObjList();
+}
+document.addEventListener('DOMContentLoaded', renderUsedColorSwatches);
 let portLineStart = null; // 角度計測：起点ポートID
 let portLineEnd   = null; // 角度計測：終点ポートID
 let dragPortId  = null; // ドラッグ中のポートID
@@ -966,6 +1031,7 @@ function toggleAddPortMode(){
 }
 
 function renderPortList(){
+  if(typeof renderUsedColorSwatches==='function') renderUsedColorSwatches();
   const el = $('port-list');
   if(!extraPorts.length){
     el.innerHTML='<div style="font-size:10px;color:var(--muted);padding:4px 0">追加ポートなし</div>';
@@ -996,6 +1062,7 @@ function renderPortList(){
       <label style="display:flex;align-items:center;gap:5px;width:100%;font-size:10px;color:var(--muted);cursor:pointer;margin-top:2px">
         <input type="checkbox" ${p.noDist?'checked':''} onchange="updateExtraPort(${p.id},'noDist',this.checked)" style="width:14px;height:14px;flex-shrink:0"> 距離計算から除外
       </label>
+      ${usedColorSwatchesHTML('setExtraPortColor', p.id)}
     </div>
   `).join('');
 }
@@ -1008,13 +1075,14 @@ function updateExtraPort(id, field, value){
   else if(field==='noDist') p.noDist = !!value;   // 距離計算から除外
   else p[field] = parseFloat(value)||0;   // x, y, size
   render();   // 入力フォーカス維持のためリストは再描画しない
+  if(field==='color' && typeof refreshColorPickers==='function') refreshColorPickers();  // 色変更時のみ使用中色スウォッチを更新
 }
 
 function removeExtraPort(id){
   extraPorts = extraPorts.filter(p=>p.id!==id);
   if(portLineStart===id) portLineStart=null;
   if(portLineEnd===id)   portLineEnd=null;
-  renderPortList();
+  refreshColorPickers();
   render();
 }
 
@@ -1648,14 +1716,14 @@ function addCustomObj(savePreset){
     obj.h = parseFloat(document.getElementById('obj-room-d').value)||6850;
   }
   customObjs.push(obj);
-  renderObjList();
+  refreshColorPickers();
   render();
   if(savePreset) saveObjPreset(obj);
 }
 
 function deleteCustomObj(id){
   customObjs = customObjs.filter(function(o){ return o.id !== id; });
-  renderObjList();
+  refreshColorPickers();
   render();
 }
 
@@ -1673,15 +1741,18 @@ function rotateCustomObj(id, delta){
 }
 
 function renderObjList(){
+  if(typeof renderUsedColorSwatches==='function') renderUsedColorSwatches();
   var el = document.getElementById('obj-list');
   if(!el) return;
   if(!customObjs.length){ el.innerHTML='<div style="font-size:10px;color:var(--muted)">配置なし</div>'; return; }
   el.innerHTML = customObjs.map(function(o){
     var name = o.label || (o.type==='rect'?'四角形':o.type==='circle'?'円':o.type==='cockpit'?'サージョンコックピット':o.type==='vision'?'ビジョンユニット':o.type==='room'?'手術室':o.text||'テキスト');
-    return '<div class="obj-item"><span class="obj-item-label">'+name+' <span style="color:var(--muted);font-size:10px">('+Math.round(o.ang||0)+'°)</span></span>'
+    return '<div class="obj-item" style="flex-wrap:wrap"><span class="obj-item-label">'+name+' <span style="color:var(--muted);font-size:10px">('+Math.round(o.ang||0)+'°)</span></span>'
+      + '<input type="color" value="'+(o.color||'#f97316')+'" title="色を変更（塗り・枠線）" onchange="updateCustomObjColor('+o.id+',this.value)" style="width:24px;height:24px;padding:0;border:1px solid var(--border);border-radius:5px;background:none;cursor:pointer;flex-shrink:0">'
       + '<button class="obj-del-btn" onclick="rotateCustomObj('+o.id+',-15)" title="左に15°回転">↺</button>'
       + '<button class="obj-del-btn" onclick="rotateCustomObj('+o.id+',15)" title="右に15°回転">↻</button>'
-      + '<button class="obj-del-btn" onclick="deleteCustomObj('+o.id+')">✕</button></div>';
+      + '<button class="obj-del-btn" onclick="deleteCustomObj('+o.id+')">✕</button>'
+      + usedColorSwatchesHTML('updateCustomObjColor', o.id) + '</div>';
   }).join('');
 }
 
@@ -3108,11 +3179,13 @@ cvs.addEventListener('mousedown',e=>{
 
   // ポート追加モード
   if(addPortMode){
-    const label = $('new-port-label').value.trim() || `ポート${nextPortId}`;
+    const num = nextPortNum();
+    const label = $('new-port-label').value.trim() || `ポート${num}`;
     const color = $('new-port-color').value || '#a855f7';
     const size  = parseFloat($('new-port-size').value) || 12;
-    extraPorts.push({id: nextPortId++, label, color, size, x: wp.x, y: wp.y});
-    renderPortList();
+    extraPorts.push({id: num, label, color, size, x: wp.x, y: wp.y});
+    nextPortId = num + 1;
+    refreshColorPickers();
     render();
     return;
   }
@@ -3935,11 +4008,13 @@ cvs.addEventListener('touchstart',e=>{
     touch.oAng=gv('ou-ang');
 
     if(addPortMode){
-      const label=$('new-port-label').value.trim()||`ポート${nextPortId}`;
+      const num=nextPortNum();
+      const label=$('new-port-label').value.trim()||`ポート${num}`;
       const color=$('new-port-color').value||'#a855f7';
       const size=parseFloat($('new-port-size').value)||12;
-      extraPorts.push({id:nextPortId++,label,color,size,x:wp.x,y:wp.y});
-      renderPortList();render();return;
+      extraPorts.push({id:num,label,color,size,x:wp.x,y:wp.y});
+      nextPortId = num + 1;
+      refreshColorPickers();render();return;
     }
     if(measureMode){
       if(measurePts.length<2){
