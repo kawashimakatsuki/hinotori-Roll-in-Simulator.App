@@ -895,15 +895,15 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
     <details class="help-credit" style="margin-top:16px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
       <summary style="cursor:pointer;font-weight:600;font-size:12px;padding:10px 12px;background:rgba(255,255,255,0.04);user-select:none">ⓘ クレジット・お問い合わせ</summary>
       <div style="font-size:12px;line-height:1.75;padding:12px 14px;color:var(--text)">
-        開発者：川嶋 克基（金沢大学附属病院 ME機器管理センター）<br>
-        Version 1.0.5<br>
-        © 2026 川嶋 克基<br>
+        開発者：川嶋 克典（○○病院 臨床工学科）<br>
+        Version 1.0.0<br>
+        © 2026 川嶋 克典<br>
         ライセンス：CC BY-NC 4.0<br>
         <br>
         学会発表：「hinotoriロールインシミュレーターの開発」<br>
-        第19回 日本ロボット外科学会学術集会（2027年2月）<br>
+        第○回 日本ロボット外科学会学術集会（2026年2月）<br>
         <br>
-        お問い合わせ：<span style="color:var(--accent)">kawashimakatsuki.ce@gmail.com</span><br>
+        お問い合わせ：<span style="color:var(--accent)">xxxxxxxx@xxxxxx.jp</span><br>
         <br>
         <span style="color:var(--muted);font-size:11px">本シミュレーターは教育・イメージ共有を目的としたツールです。実際の手術における判断は必ず実機および施設のプロトコルに従ってください。本ツールの使用により生じたいかなる損害についても開発者は責任を負いません。</span>
       </div>
@@ -2401,25 +2401,6 @@ function drawOU(dark){
     ctx.beginPath();ctx.roundRect(bx-5,by-5,bw+10,bh+10,cr+5);ctx.stroke();
   }
 
-  // 連結アーム（カート支柱 → アームマニフォールド）
-  {
-    const _colx=0,_coly=by+bh*0.45;
-    const _apx=abx*sc,_apy=-aby*sc;
-    ctx.save();ctx.lineCap='round';
-    const _cw=Math.max(7,armBW*sc*0.55);
-    ctx.beginPath();ctx.moveTo(_colx,_coly);ctx.lineTo(_apx,_apy);
-    ctx.strokeStyle='#000';                                    // 黒枠（統一）
-    ctx.lineWidth=_cw;ctx.stroke();
-    ctx.beginPath();ctx.moveTo(_colx,_coly);ctx.lineTo(_apx,_apy);
-    ctx.strokeStyle=dark?'rgba(229,233,244,0.97)':'#ffffff';   // 白本体
-    ctx.lineWidth=Math.max(2,_cw-4);ctx.stroke();
-    ctx.restore();
-    // カート側支柱（円）
-    ctx.beginPath();ctx.arc(_colx,_coly,Math.max(6,armBW*sc*0.4),0,Math.PI*2);
-    ctx.fillStyle=dark?'#e8edf5':'#ffffff';ctx.fill();
-    ctx.strokeStyle='#000';ctx.lineWidth=2;ctx.stroke();
-  }
-
   ctx.save();
   ctx.translate(abx*sc,-aby*sc);
   ctx.rotate(-sw);
@@ -2466,6 +2447,34 @@ function drawOU(dark){
     }
     ctx.lineCap='butt';
   }
+  // 連結アーム（カート支柱 → アームマニフォールド）※アームより前面・アームベースより背面
+  ctx.restore();
+  {
+    const _colx=0,_coly=by+bh*0.45;
+    // 接続点：マニフォールド長辺（カート支柱側）の中点。中心ではなく側面に繋ぐ
+    const _cx=abx*sc,_cy=-aby*sc;
+    const _lkx=(_colx-_cx)*Math.cos(sw)-(_coly-_cy)*Math.sin(sw); // 支柱位置のアームベースローカルX
+    const _sgn=_lkx>=0?1:-1;
+    const _ex=_sgn*armBW*sc*0.5;
+    const _apx=_cx+_ex*Math.cos(sw);
+    const _apy=_cy-_ex*Math.sin(sw);
+    ctx.save();ctx.lineCap='round';
+    const _cw=Math.max(7,armBW*sc*0.55);
+    ctx.beginPath();ctx.moveTo(_colx,_coly);ctx.lineTo(_apx,_apy);
+    ctx.strokeStyle='#000';                                    // 黒枠（統一）
+    ctx.lineWidth=_cw;ctx.stroke();
+    ctx.beginPath();ctx.moveTo(_colx,_coly);ctx.lineTo(_apx,_apy);
+    ctx.strokeStyle=dark?'rgba(229,233,244,0.97)':'#ffffff';   // 白本体
+    ctx.lineWidth=Math.max(2,_cw-4);ctx.stroke();
+    ctx.restore();
+    // カート側支柱（円）
+    ctx.beginPath();ctx.arc(_colx,_coly,Math.max(6,armBW*sc*0.4),0,Math.PI*2);
+    ctx.fillStyle=dark?'#e8edf5':'#ffffff';ctx.fill();
+    ctx.strokeStyle='#000';ctx.lineWidth=2;ctx.stroke();
+  }
+  ctx.save();
+  ctx.translate(abx*sc,-aby*sc);
+  ctx.rotate(-sw);
   // マニフォールド本体（細長バー）
   ctx.beginPath();ctx.roundRect(-abwPx/2,-abhPx/2,abwPx,abhPx,acr);
   ctx.fillStyle=dark?'#e8edf5':'#ffffff';ctx.fill();
@@ -2479,6 +2488,7 @@ function drawOU(dark){
   ctx.fillStyle='#f97316';ctx.fill();
   ctx.strokeStyle='#fed7aa';ctx.lineWidth=1.5;ctx.stroke();
 
+  // ポジショニングカメラ（最前面）
   const clx=camX*sc,cly=-camY*sc;
   ctx.beginPath();ctx.arc(clx,cly,10,0,Math.PI*2);
   ctx.fillStyle='#00d4ff';ctx.fill();
