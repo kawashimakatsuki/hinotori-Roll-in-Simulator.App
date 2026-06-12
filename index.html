@@ -360,13 +360,16 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
   <div class="hdr-btns">
     <button class="drawer-toggle" onclick="toggleDrawer()" title="設定">☰</button>
     <button class="btn" id="undo-btn" onclick="undoState()" title="一個前の状態に戻す" disabled>↩ Undo</button>
+    <button class="btn" id="redo-btn" onclick="redoState()" title="やり直す（Ctrl+Y）" disabled>↪ Redo</button>
     <button class="btn" onclick="resetToInitial()" title="デフォルトに戻す" style="border-color:#f97316;color:#f97316;">🔄 デフォルト</button>
     <button class="btn" onclick="saveAsInitial()" title="現在の設定をデフォルトとして保存" style="border-color:#a78bfa;color:#a78bfa;">💾 デフォルト保存</button>
     <button class="btn" onclick="resetView()" title="表示位置・ズームを初期状態に戻す">🎯 ビューリセット</button>
     <button class="btn" onclick="alignOU()" title="OUをカメラポートに自動整列">⚡ 自動整列</button>
+    <button class="btn" onclick="animateRollIn()" title="OUを現在位置までロールインさせるアニメーションを再生">▶ ロールイン再生</button>
     <button class="btn" id="measure-btn" onclick="toggleMeasure()" title="2点間距離を計測">📏 距離計測</button>
     <button class="btn" id="add-port-btn" onclick="toggleAddPortMode()" title="追加ポートを配置">📍 ポート追加</button>
     <button class="btn" id="paint-btn" onclick="togglePaintMode()" title="ペイント">🖊 ペイント</button>
+    <button class="btn" onclick="openShareModal()" title="現在のレイアウトをURL/QR/JSONで共有" style="border-color:#22d3ee;color:#22d3ee;">🔗 共有</button>
     <button class="btn" onclick="openHelpModal()" title="操作方法">❓ ヘルプ</button>
   </div>
 </header>
@@ -480,6 +483,14 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
           <button class="btn btn-sm" onclick="renderPresetList()">🔄</button>
         </div>
         <div class="pr-list" id="pr-list"></div>
+        <hr class="sep">
+        <div style="font-size:10px;font-weight:700;color:var(--muted);margin-bottom:4px;">📦 全プリセットのバックアップ</div>
+        <div class="btn-row">
+          <button class="btn btn-sm" onclick="exportAllPresets()">⬇ JSON書き出し</button>
+          <button class="btn btn-sm" onclick="document.getElementById('pr-import-file').click()">⬆ JSON読み込み</button>
+        </div>
+        <input type="file" id="pr-import-file" accept=".json,application/json" style="display:none" onchange="importAllPresets(this)">
+        <div style="font-size:9px;color:var(--muted);margin-top:3px">※レイアウト・手術台・アームベース・オブジェクトの全プリセットとデフォルト設定を1ファイルで保存／復元できます</div>
       </div>
     </div>
 
@@ -531,6 +542,14 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
       <div class="sec-bd">
         <div class="f"><label><input type="checkbox" id="show-patient" onchange="render()"> 患者を表示（手術台の上）</label></div>
         <div class="f"><label>身長 (cm)</label><input type="number" id="patient-h" value="170" min="30" max="220" step="0.1" oninput="render()"></div>
+        <div class="f"><label>体型</label>
+          <select id="patient-build" onchange="render()">
+            <option value="0.85">やせ型</option>
+            <option value="1" selected>標準</option>
+            <option value="1.15">がっちり</option>
+            <option value="1.3">肥満</option>
+          </select>
+        </div>
         <div class="f"><label>体位</label>
           <select id="patient-pose" onchange="render()">
             <option value="supine">仰臥位</option>
@@ -781,7 +800,9 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
     <span style="margin-left:auto">📐 傾斜: <span id="tilt-s">なし</span></span>
   </div>
   <div class="status-row" id="measure-row" style="display:none;background:rgba(250,204,21,0.07);border-top:1px solid var(--border)">
-    <span style="color:#facc15;font-weight:600">📏 距離計測モード</span>
+    <span style="color:#facc15;font-weight:600">📏 計測モード</span>
+    <button class="btn btn-sm btn-active" id="meas-type-dist" onclick="setMeasureType('dist')" title="2点間の距離を計測">距離</button>
+    <button class="btn btn-sm" id="meas-type-angle" onclick="setMeasureType('angle')" title="3点（端点・頂点・端点）のなす角度を計測">角度</button>
     <span id="measure-txt" style="color:var(--muted)">クリックで1点目を指定してください</span>
     <span class="dist-badge" id="measure-badge" style="display:none;color:#facc15;border-color:#facc15">—</span>
     <button class="btn btn-sm" style="margin-left:auto" onclick="clearMeasure()">✕ 計測クリア</button>
@@ -895,15 +916,15 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
     <details class="help-credit" style="margin-top:16px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
       <summary style="cursor:pointer;font-weight:600;font-size:12px;padding:10px 12px;background:rgba(255,255,255,0.04);user-select:none">ⓘ クレジット・お問い合わせ</summary>
       <div style="font-size:12px;line-height:1.75;padding:12px 14px;color:var(--text)">
-        開発者：川嶋 克基（金沢大学附属病院 ME機器管理センター）<br>
+        開発者：川嶋 克典（○○病院 臨床工学科）<br>
         Version 1.0.0<br>
-        © 2026 川嶋 克基<br>
+        © 2026 川嶋 克典<br>
         ライセンス：CC BY-NC 4.0<br>
         <br>
         学会発表：「hinotoriロールインシミュレーターの開発」<br>
-        第19回 日本ロボット外科学会学術集会（2027年2月）<br>
+        第○回 日本ロボット外科学会学術集会（2026年2月）<br>
         <br>
-        お問い合わせ：<span style="color:var(--accent)">kawashimakatsuki.ce@gmail.com</span><br>
+        お問い合わせ：<span style="color:var(--accent)">xxxxxxxx@xxxxxx.jp</span><br>
         <br>
         <span style="color:var(--muted);font-size:11px">本シミュレーターは教育・イメージ共有を目的としたツールです。実際の手術における判断は必ず実機および施設のプロトコルに従ってください。本ツールの使用により生じたいかなる損害についても開発者は責任を負いません。</span>
       </div>
@@ -946,6 +967,33 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
   </div>
 </div>
 
+<!-- レイアウト共有モーダル -->
+<div class="modal-bg" id="share-modal">
+  <div class="modal" style="width:340px;max-width:92vw">
+    <h3>🔗 レイアウトを共有</h3>
+    <label style="display:flex;align-items:center;gap:6px;font-size:11px;margin-bottom:8px;cursor:pointer">
+      <input type="checkbox" id="share-incl-paint" onchange="refreshShareURL()">ペイント描画を含める
+    </label>
+    <input type="text" id="share-url" readonly onclick="this.select()" style="width:100%;font-size:10px;margin-bottom:8px">
+    <div class="btn-row" style="margin-bottom:8px">
+      <button class="btn btn-sm" onclick="copyShareURL()">📋 URLコピー</button>
+      <button class="btn btn-sm" id="share-native-btn" onclick="shareNative()">📤 共有</button>
+      <button class="btn btn-sm" onclick="showShareQR()">QRコード</button>
+    </div>
+    <div id="share-qr" style="display:flex;justify-content:center;margin-bottom:8px;background:#fff;border-radius:8px;padding:0"></div>
+    <div id="share-msg" style="font-size:10px;color:var(--muted);margin-bottom:8px;min-height:14px"></div>
+    <hr class="sep">
+    <div class="btn-row" style="margin-top:8px">
+      <button class="btn btn-sm" onclick="exportShareJSON()">⬇ JSON保存</button>
+      <button class="btn btn-sm" onclick="document.getElementById('share-file').click()">⬆ JSON読込</button>
+      <input type="file" id="share-file" accept=".json,application/json" style="display:none" onchange="importShareJSON(this)">
+    </div>
+    <div class="btn-row" style="margin-top:10px">
+      <button class="btn btn-acc" onclick="closeShareModal()">閉じる</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const cvs=document.getElementById('c'),ctx=cvs.getContext('2d');
 const $=id=>document.getElementById(id);
@@ -953,11 +1001,13 @@ const gv=id=>parseFloat($(id).value)||0;
 const gc=id=>$(id).checked;
 const d2r=a=>a*Math.PI/180;
 let VIEW={sc:0.077,px:0,py:0};
+// 高DPI対応：canvas実ピクセル=CSSピクセル×DPR。描画・座標計算はすべてCSSピクセル(CV.w/CV.h)基準
+let DPR=1, CV={w:300,h:150};
 
 function rot(x,y,a){const c=Math.cos(a),s=Math.sin(a);return{x:x*c-y*s,y:x*s+y*c};}
 function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
-function w2c(wx,wy){return{x:cvs.width/2+VIEW.px+wx*VIEW.sc,y:cvs.height/2+VIEW.py-wy*VIEW.sc};}
-function c2w(cx,cy){return{x:(cx-cvs.width/2-VIEW.px)/VIEW.sc,y:-(cy-cvs.height/2-VIEW.py)/VIEW.sc};}
+function w2c(wx,wy){return{x:CV.w/2+VIEW.px+wx*VIEW.sc,y:CV.h/2+VIEW.py-wy*VIEW.sc};}
+function c2w(cx,cy){return{x:(cx-CV.w/2-VIEW.px)/VIEW.sc,y:-(cy-CV.h/2-VIEW.py)/VIEW.sc};}
 
 // ====== 追加ポート ======
 let extraPorts = []; // {id, label, color, size, x, y} ワールド座標
@@ -1246,8 +1296,8 @@ function renderTblPresetGrid(){
   const grid = $('tbl-preset-grid');
   grid.innerHTML = presets.map(p=>`
     <button class="tbl-preset-btn${p.name===activeTblPresetName?' active':''}"
-      onclick="applyTblPreset('${p.name.replace(/'/g,"\\'")}')">
-      <div style="font-weight:700">${p.name}</div>
+      onclick="applyTblPreset('${escHTML(p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'"))}')">
+      <div style="font-weight:700">${escHTML(p.name)}</div>
       <div style="color:var(--muted)">${p.w}×${p.d}mm</div>
     </button>
   `).join('');
@@ -1334,6 +1384,7 @@ function resetTblSection(){   // 手術台（カメラポートの世界位置�
 function resetPatientSection(){   // 患者（表示ON/OFFは維持）
   _secSet('patient-h',170);
   _secSet('patient-pose','supine');
+  _secSet('patient-build','1');
   _secSet('patient-x',0); _secSet('patient-y',0);
   render();
 }
@@ -1389,6 +1440,8 @@ let kbdInterval = null;
 let heldH = false;
 
 document.addEventListener('keydown', e=>{
+  // Ctrl+Y / Ctrl+Shift+Z でレイアウトRedo
+  if((e.ctrlKey||e.metaKey) && (e.key==='y'||e.key==='Y'||((e.key==='z'||e.key==='Z')&&e.shiftKey))){ e.preventDefault(); redoState(); return; }
   // Ctrl+Z でペイントundo
   if((e.ctrlKey||e.metaKey) && e.key==='z'){ undoPaint(); return; }
   // テキスト入力中は無視
@@ -1594,7 +1647,12 @@ function resize(){
   const wrap=cvs.parentElement;
   const w=wrap.clientWidth||window.innerWidth;
   const h=wrap.clientHeight||window.innerHeight;
-  if(w>0&&h>0){cvs.width=w;cvs.height=h;}
+  if(w>0&&h>0){
+    DPR=Math.min(window.devicePixelRatio||1,3);   // 高DPI対応（Retina/スマホでも線・文字が鮮明）
+    cvs.width=Math.round(w*DPR);cvs.height=Math.round(h*DPR);
+    cvs.style.width=w+'px';cvs.style.height=h+'px';
+    CV.w=w;CV.h=h;
+  }
   render();
 }
 window.addEventListener('resize',resize);
@@ -1634,8 +1692,9 @@ window.addEventListener('orientationchange',()=>{
   },200);
 });
 
-// ====== Undo スタック ======
+// ====== Undo / Redo スタック ======
 const STATE_STACK = [];
+const REDO_STACK  = [];
 const STATE_MAX   = 50;
 let   _lastStateJSON = '';
 let   _stateTimer    = null;
@@ -1645,25 +1704,43 @@ function pushState(){
   if(json === _lastStateJSON) return;      // 変化なしなら積まない
   _lastStateJSON = json;
   STATE_STACK.push(json);
+  REDO_STACK.length = 0;                   // 新しい操作が入ったらRedo履歴は無効
   if(STATE_STACK.length > STATE_MAX) STATE_STACK.shift();
   updateUndoBtn();
 }
 
 function updateUndoBtn(){
   const btn = $('undo-btn');
-  if(!btn) return;
-  btn.disabled = STATE_STACK.length <= 1;
-  btn.title = STATE_STACK.length > 1
-    ? `一個前の状態に戻す（${STATE_STACK.length - 1} ステップ保存中）`
-    : '一個前の状態に戻す';
+  if(btn){
+    btn.disabled = STATE_STACK.length <= 1;
+    btn.title = STATE_STACK.length > 1
+      ? `一個前の状態に戻す（${STATE_STACK.length - 1} ステップ保存中）`
+      : '一個前の状態に戻す';
+  }
+  const rbtn = $('redo-btn');
+  if(rbtn){
+    rbtn.disabled = REDO_STACK.length === 0;
+    rbtn.title = REDO_STACK.length
+      ? `やり直す（${REDO_STACK.length} ステップ）`
+      : 'やり直す（Ctrl+Y）';
+  }
 }
 
 function undoState(){
   if(STATE_STACK.length <= 1) return;
-  STATE_STACK.pop();                        // 現在状態を捨てる
+  REDO_STACK.push(STATE_STACK.pop());       // 現在状態をRedoへ退避
   const json = STATE_STACK[STATE_STACK.length - 1];
   _lastStateJSON = json;
   applyPresetData(JSON.parse(json));        // render() は applyPresetData 内で呼ばれる
+  updateUndoBtn();
+}
+
+function redoState(){
+  if(REDO_STACK.length === 0) return;
+  const json = REDO_STACK.pop();
+  STATE_STACK.push(json);
+  _lastStateJSON = json;
+  applyPresetData(JSON.parse(json));
   updateUndoBtn();
 }
 
@@ -1948,15 +2025,57 @@ function _drawVisionShape(o){
 }
 
 
+// ===== 干渉判定ヘルパー（SAT: 分離軸定理。角・辺どうしの交差や完全内包も検出） =====
+function _rectCornersOf(cx,cy,w,h,angRad){
+  return [{x:-w/2,y:-h/2},{x:w/2,y:-h/2},{x:w/2,y:h/2},{x:-w/2,y:h/2}]
+    .map(function(c){ var r=rot(c.x,c.y,angRad); return {x:cx+r.x, y:cy+r.y}; });
+}
+function _satPolys(A,B){
+  // 凸多角形同士の交差判定（全ての辺法線への射影区間が重なれば交差）
+  var polys=[A,B];
+  for(var k=0;k<2;k++){
+    var poly=polys[k];
+    for(var i=0;i<poly.length;i++){
+      var a=poly[i], b=poly[(i+1)%poly.length];
+      var nx=b.y-a.y, ny=a.x-b.x;
+      var minA=Infinity,maxA=-Infinity,minB=Infinity,maxB=-Infinity,j,pr;
+      for(j=0;j<A.length;j++){ pr=A[j].x*nx+A[j].y*ny; if(pr<minA)minA=pr; if(pr>maxA)maxA=pr; }
+      for(j=0;j<B.length;j++){ pr=B[j].x*nx+B[j].y*ny; if(pr<minB)minB=pr; if(pr>maxB)maxB=pr; }
+      if(maxA<minB || maxB<minA) return false;
+    }
+  }
+  return true;
+}
+function _pointInPoly(x,y,poly){
+  var inside=false;
+  for(var i=0,j=poly.length-1;i<poly.length;j=i++){
+    var xi=poly[i].x,yi=poly[i].y,xj=poly[j].x,yj=poly[j].y;
+    if(((yi>y)!==(yj>y)) && (x < (xj-xi)*(y-yi)/(yj-yi)+xi)) inside=!inside;
+  }
+  return inside;
+}
+function _segPointDist(px,py,a,b){
+  var dx=b.x-a.x,dy=b.y-a.y,len2=dx*dx+dy*dy;
+  var t=len2?Math.max(0,Math.min(1,((px-a.x)*dx+(py-a.y)*dy)/len2)):0;
+  return Math.hypot(px-(a.x+dx*t), py-(a.y+dy*t));
+}
+function _circlePolyHit(cx,cy,r,poly){
+  if(_pointInPoly(cx,cy,poly)) return true;
+  for(var i=0;i<poly.length;i++){
+    if(_segPointDist(cx,cy,poly[i],poly[(i+1)%poly.length])<=r) return true;
+  }
+  return false;
+}
+
 function checkCollisions(){
   var msg = document.getElementById('collision-txt');
   if(!msg) return;
   var ouW=gv('ou-w'), ouD=gv('ou-d'), ouPiv=gv('ou-piv');
   var ouA=d2r(gv('ou-ang')), ouX=gv('ou-x'), ouY=gv('ou-y');
-  // OUの四隅のworld座標
+  // OUの四隅のworld座標（多角形として周回順）
   var corners=[
     {x:-ouW/2, y:-ouPiv}, {x:ouW/2, y:-ouPiv},
-    {x:-ouW/2, y:-ouPiv+ouD}, {x:ouW/2, y:-ouPiv+ouD}
+    {x:ouW/2, y:-ouPiv+ouD}, {x:-ouW/2, y:-ouPiv+ouD}
   ].map(function(c){
     var r=rot(c.x,c.y,ouA);
     return {x:ouX+r.x, y:ouY+r.y};
@@ -1964,8 +2083,9 @@ function checkCollisions(){
 
   var hits=[];
 
-  // 手術台との接触
-  if(corners.some(function(c){ return isInTable(c.x,c.y); })){
+  // 手術台との接触（SAT：辺同士の交差・小物の内包も検出）
+  var tblPoly=_rectCornersOf(gv('tbl-x'),gv('tbl-y'),gv('tbl-w'),gv('tbl-d'),d2r(gv('tbl-ang')));
+  if(_satPolys(corners,tblPoly)){
     hits.push('手術台');
   }
 
@@ -1973,27 +2093,30 @@ function checkCollisions(){
   customObjs && customObjs.forEach(function(o){
     if(o.type==='text') return;
     var name = o.label || (o.type==='rect'?'四角形':o.type==='cockpit'?'サージョンコックピット':o.type==='vision'?'ビジョンユニット':o.type==='room'?'手術室':'円');
-    var hit = corners.some(function(c){
-      var dx=c.x-o.x, dy=c.y-o.y;
-      if(o.type==='room'){
-        // 手術室：OUが枠（壁）に接触・はみ出した時のみ接触とする（内部に収まっていれば接触なし）
-        var ar=d2r(o.ang);
+    var hit=false;
+    if(o.type==='room'){
+      // 手術室：OUが枠（壁）に接触・はみ出した時のみ接触とする（内部に収まっていれば接触なし）
+      var ar=d2r(o.ang);
+      hit = corners.some(function(c){
+        var dx=c.x-o.x, dy=c.y-o.y;
         var lxr= dx*Math.cos(ar)+dy*Math.sin(ar);
         var lyr=-dx*Math.sin(ar)+dy*Math.cos(ar);
         return Math.abs(lxr)>=o.w/2 || Math.abs(lyr)>=o.h/2;
-      } else if(o.type==='rect' || o.type==='cockpit' || o.type==='vision'){
-        var a=d2r(o.ang);
-        var lx= dx*Math.cos(a)+dy*Math.sin(a);
-        var ly=-dx*Math.sin(a)+dy*Math.cos(a);
-        return Math.abs(lx)<=o.w/2 && Math.abs(ly)<=o.h/2;
-      } else if(o.type==='circle'){
-        var fillNone2=(o.opacity===0||o.opacity==='0');
-        var d2=Math.sqrt(dx*dx+dy*dy);
-        if(fillNone2){ var sw3=(o.strokeWidth||2); return d2>=o.r/2-sw3 && d2<=o.r/2+sw3; }
-        return d2<=o.r/2;
+      });
+    } else if(o.type==='rect' || o.type==='cockpit' || o.type==='vision'){
+      hit = _satPolys(corners, _rectCornersOf(o.x,o.y,o.w,o.h,d2r(o.ang)));
+    } else if(o.type==='circle'){
+      var fillNone2=(o.opacity===0||o.opacity==='0');
+      if(fillNone2){
+        // 枠のみの円：外周に触れていて、かつOUが内側に完全に収まっていなければ接触
+        var sw3=(o.strokeWidth||2);
+        var outerHit=_circlePolyHit(o.x,o.y,o.r/2+sw3,corners);
+        var allInside=corners.every(function(c){ return Math.hypot(c.x-o.x,c.y-o.y) <= o.r/2-sw3; });
+        hit = outerHit && !allInside;
+      } else {
+        hit = _circlePolyHit(o.x,o.y,o.r/2,corners);
       }
-      return false;
-    });
+    }
     if(hit) hits.push(name);
   });
 
@@ -2010,9 +2133,9 @@ function render(){
   clearTimeout(_stateTimer);
   _stateTimer = setTimeout(pushState, 300);
 
-  const W=cvs.width,H=cvs.height;
-  // 各フレームを必ず無変換状態から開始（前フレームで万一transformがリークしても歪み・グリッド重複を防ぐ）
-  ctx.setTransform(1,0,0,1,0,0);
+  const W=CV.w,H=CV.h;
+  // 各フレームを必ず基準変換（DPRスケール）から開始（transformリーク防止＋高DPI対応）
+  ctx.setTransform(DPR,0,0,DPR,0,0);
   if(typeof window._tblRefD !== 'number'){ window._tblRefD = gv('tbl-d'); window._tblOffset = 0; }  // 長さ変更の基準長（初回のみ）
   const bgVal=$('bg-mode').value;
   const dark=bgVal==='dark';
@@ -2044,24 +2167,24 @@ function render(){
 function drawGrid(dark){
   const step=100*VIEW.sc;
   if(step<4)return;
-  const ox=cvs.width/2+VIEW.px,oy=cvs.height/2+VIEW.py;
+  const ox=CV.w/2+VIEW.px,oy=CV.h/2+VIEW.py;
   ctx.strokeStyle=dark?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.07)';
   ctx.lineWidth=1;ctx.beginPath();
-  for(let x=(ox%step+step)%step;x<cvs.width;x+=step){ctx.moveTo(x,0);ctx.lineTo(x,cvs.height);}
-  for(let y=(oy%step+step)%step;y<cvs.height;y+=step){ctx.moveTo(0,y);ctx.lineTo(cvs.width,y);}
+  for(let x=(ox%step+step)%step;x<CV.w;x+=step){ctx.moveTo(x,0);ctx.lineTo(x,CV.h);}
+  for(let y=(oy%step+step)%step;y<CV.h;y+=step){ctx.moveTo(0,y);ctx.lineTo(CV.w,y);}
   ctx.stroke();
   if(step>25){
     ctx.fillStyle=dark?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.25)';
     ctx.font='9px sans-serif';ctx.textAlign='center';
     const wo=c2w(0,0);
     const x0=Math.ceil(wo.x/100)*100;
-    for(let wx=x0;wx<wo.x+cvs.width/VIEW.sc;wx+=100){
-      const cp=w2c(wx,0);if(cp.x>30&&cp.x<cvs.width-10)ctx.fillText(wx,cp.x,cvs.height-4);
+    for(let wx=x0;wx<wo.x+CV.w/VIEW.sc;wx+=100){
+      const cp=w2c(wx,0);if(cp.x>30&&cp.x<CV.w-10)ctx.fillText(wx,cp.x,CV.h-4);
     }
     ctx.textAlign='right';
     const y0=Math.floor(wo.y/100)*100;
-    for(let wy=y0;wy>wo.y-cvs.height/VIEW.sc;wy-=100){
-      const cp=w2c(0,wy);if(cp.y>10&&cp.y<cvs.height-10)ctx.fillText(wy,30,cp.y+3);
+    for(let wy=y0;wy>wo.y-CV.h/VIEW.sc;wy-=100){
+      const cp=w2c(0,wy);if(cp.y>10&&cp.y<CV.h-10)ctx.fillText(wy,30,cp.y+3);
     }
   }
 }
@@ -2070,8 +2193,8 @@ function drawAxes(dark){
   const o=w2c(0,0);
   ctx.strokeStyle=dark?'rgba(100,100,200,0.25)':'rgba(0,0,150,0.15)';
   ctx.lineWidth=1;ctx.setLineDash([5,5]);ctx.beginPath();
-  ctx.moveTo(o.x,0);ctx.lineTo(o.x,cvs.height);
-  ctx.moveTo(0,o.y);ctx.lineTo(cvs.width,o.y);
+  ctx.moveTo(o.x,0);ctx.lineTo(o.x,CV.h);
+  ctx.moveTo(0,o.y);ctx.lineTo(CV.w,o.y);
   ctx.stroke();ctx.setLineDash([]);
 }
 
@@ -2620,6 +2743,8 @@ function drawPatient(dark){
   var H=((parseFloat((document.getElementById('patient-h')||{}).value)||170)*10)*VIEW.sc;   // cm入力→mm換算
   if(!(H>0)) return;
   var pose=(document.getElementById('patient-pose')||{value:'supine'}).value;
+  // 体型係数（やせ型0.85〜肥満1.3）。胴体・手足の幅に掛ける（頭は身長基準のまま）
+  var BW=parseFloat((document.getElementById('patient-build')||{value:1}).value)||1;
   var tA=d2r(gv('tbl-ang'));
   var tc=w2c(gv('tbl-x'),gv('tbl-y'));
   ctx.save(); ctx.translate(tc.x,tc.y); ctx.rotate(-tA);
@@ -2639,6 +2764,7 @@ function drawPatient(dark){
   }
   function ell(cx,cy,rx,ry,fill){ ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle=OUT;ctx.lineWidth=2;ctx.stroke(); }
   function torso(shW,hipW,shY,hipY){
+    shW*=BW; hipW*=BW;   // 体型係数を胴体幅へ反映
     var midY=(shY+hipY)/2, waistW=Math.min(shW,hipW)*0.82;
     ctx.beginPath();
     ctx.moveTo(-shW,shY);
@@ -2648,7 +2774,7 @@ function drawPatient(dark){
     ctx.closePath();
     ctx.fillStyle=GOWN;ctx.fill();ctx.strokeStyle=OUT;ctx.lineWidth=2;ctx.stroke();
   }
-  var top=-H/2, headR=H*0.058, aW=H*0.045, lW=H*0.062;
+  var top=-H/2, headR=H*0.058, aW=H*0.045*BW, lW=H*0.062*BW;
   // 手術台幅でクランプ（脚などが台の外に出ないように）
   var _xlim=gv('tbl-w')*VIEW.sc*0.46;
   function cl(x){ return Math.max(-_xlim, Math.min(_xlim, x)); }
@@ -2915,6 +3041,67 @@ function drawRollinAngle(dark){
 // ====== 距離計測 ======
 let measureMode=false;
 let measurePts=[];
+let savedMeasures=[];      // 確定済み計測（{type:'dist'|'angle', pts:[...]}）
+let measureType='dist';    // 'dist'（2点距離） | 'angle'（3点角度）
+
+function _measNeed(){ return measureType==='angle' ? 3 : 2; }
+function _measHintTxt(){
+  var n=measurePts.length;
+  if(measureType==='angle'){
+    if(n===0)return 'クリックで1点目（端点）を指定してください';
+    if(n===1)return 'クリックで2点目（頂点）を指定してください';
+    if(n===2)return 'クリックで3点目（端点）を指定してください';
+    return '計測完了（続けてクリックで新しい計測）';
+  }
+  if(n===0)return 'クリックで1点目を指定してください';
+  if(n===1)return 'クリックで2点目を指定してください';
+  return '計測完了（続けてクリックで新しい計測）';
+}
+function setMeasureType(t){
+  measureType=t;
+  measurePts=[];
+  var bd=document.getElementById('meas-type-dist'),ba=document.getElementById('meas-type-angle');
+  if(bd)bd.classList.toggle('btn-active',t==='dist');
+  if(ba)ba.classList.toggle('btn-active',t==='angle');
+  var p3=document.getElementById('smb-pin3');
+  if(p3)p3.style.display = t==='angle' ? '' : 'none';
+  var mt=document.getElementById('measure-txt'); if(mt)mt.textContent=_measHintTxt();
+  var badge=document.getElementById('measure-badge'); if(badge)badge.style.display='none';
+  render();
+}
+// 3点 P1-P2(頂点)-P3 のなす角（度）
+function _measAngleDeg(pts){
+  var v1={x:pts[0].x-pts[1].x,y:pts[0].y-pts[1].y},v2={x:pts[2].x-pts[1].x,y:pts[2].y-pts[1].y};
+  var n1=Math.hypot(v1.x,v1.y),n2=Math.hypot(v2.x,v2.y);
+  if(n1<1e-9||n2<1e-9)return 0;
+  var c=(v1.x*v2.x+v1.y*v2.y)/(n1*n2); c=Math.max(-1,Math.min(1,c));
+  return Math.acos(c)*180/Math.PI;
+}
+// 計測点を1点追加（クリック/タップ共通）。完了後にさらに追加すると現在の計測を保存して新規開始
+function addMeasurePt(wx,wy){
+  if(measurePts.length>=_measNeed()){
+    savedMeasures.push({type:measureType, pts:measurePts});
+    measurePts=[];
+  }
+  measurePts.push({x:wx,y:wy});
+  updateMeasureStatus();
+  render();
+}
+function updateMeasureStatus(){
+  var txt=document.getElementById('measure-txt');
+  if(txt)txt.textContent=_measHintTxt();
+  var badge=document.getElementById('measure-badge');
+  if(!badge)return;
+  if(measureType==='dist'&&measurePts.length>=2){
+    badge.textContent=dist(measurePts[0],measurePts[1]).toFixed(1)+' mm';
+    badge.style.display='inline-block';
+  }else if(measureType==='angle'&&measurePts.length>=3){
+    badge.textContent=_measAngleDeg(measurePts).toFixed(1)+' °';
+    badge.style.display='inline-block';
+  }else{
+    badge.style.display='none';
+  }
+}
 
 function toggleMeasure(){
   measureMode=!measureMode;
@@ -2932,7 +3119,7 @@ function toggleMeasure(){
     btn.classList.add('btn-active');
     cvs.classList.add('measure');
     row.style.display='flex';
-    $('measure-txt').textContent='クリックで1点目を指定してください';
+    $('measure-txt').textContent=_measHintTxt();
     $('measure-badge').style.display='none';
     if(addPortMode) toggleAddPortMode();
   }else{
@@ -2945,14 +3132,62 @@ function toggleMeasure(){
 
 function clearMeasure(){
   measurePts=[];
-  $('measure-txt').textContent='クリックで1点目を指定してください';
+  savedMeasures=[];
+  $('measure-txt').textContent=_measHintTxt();
   $('measure-badge').style.display='none';
   render();
 }
 
-function drawMeasure(dark){
-  if(!measureMode&&measurePts.length===0)return;
+// 1件の計測（距離 or 角度）を描画。faded=確定済み（薄表示）
+function _drawOneMeasure(type,pts,dark,faded){
   ctx.save();
+  ctx.globalAlpha = faded?0.55:1;
+  const col='#facc15';
+  const seg=(a,b)=>{
+    const c1=w2c(a.x,a.y),c2=w2c(b.x,b.y);
+    ctx.beginPath();ctx.moveTo(c1.x,c1.y);ctx.lineTo(c2.x,c2.y);
+    ctx.strokeStyle=col;ctx.lineWidth=2;ctx.setLineDash([6,4]);ctx.stroke();ctx.setLineDash([]);
+  };
+  const lbl=(text,mx,my)=>{
+    ctx.font='bold 13px sans-serif';
+    const tw=ctx.measureText(text).width;
+    ctx.fillStyle=dark?'rgba(10,10,18,0.85)':'rgba(238,240,245,0.9)';
+    ctx.fillRect(mx-tw/2-5,my-12,tw+10,20);
+    ctx.fillStyle=col;ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(text,mx,my);
+  };
+  if(faded){
+    pts.forEach(pt=>{
+      const c=w2c(pt.x,pt.y);
+      ctx.beginPath();ctx.arc(c.x,c.y,4,0,Math.PI*2);
+      ctx.fillStyle=col;ctx.fill();
+    });
+  }
+  if(type==='angle'&&pts.length>=3){
+    seg(pts[1],pts[0]);seg(pts[1],pts[2]);
+    // 頂点に角度弧（短い方の回り）
+    const v=w2c(pts[1].x,pts[1].y),e1=w2c(pts[0].x,pts[0].y),e2=w2c(pts[2].x,pts[2].y);
+    const a1=Math.atan2(e1.y-v.y,e1.x-v.x),a2=Math.atan2(e2.y-v.y,e2.x-v.x);
+    let dAng=a2-a1;
+    while(dAng>Math.PI)dAng-=2*Math.PI;
+    while(dAng<-Math.PI)dAng+=2*Math.PI;
+    ctx.beginPath();ctx.arc(v.x,v.y,20,a1,a1+dAng,dAng<0);
+    ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.stroke();
+    lbl(_measAngleDeg(pts).toFixed(1)+'°',v.x,v.y-30);
+  } else if(pts.length>=2){
+    seg(pts[0],pts[1]);
+    const c1=w2c(pts[0].x,pts[0].y),c2=w2c(pts[1].x,pts[1].y);
+    lbl(dist(pts[0],pts[1]).toFixed(1)+' mm',(c1.x+c2.x)/2,(c1.y+c2.y)/2);
+  }
+  ctx.restore();
+}
+
+function drawMeasure(dark){
+  if(!measureMode&&measurePts.length===0&&savedMeasures.length===0)return;
+  ctx.save();
+  // 確定済みの計測（薄表示で保持）
+  savedMeasures.forEach(m=>_drawOneMeasure(m.type,m.pts,dark,true));
+  // 計測中の点
   measurePts.forEach((pt,i)=>{
     const c=w2c(pt.x,pt.y);
     ctx.beginPath();ctx.arc(c.x,c.y,6,0,Math.PI*2);
@@ -2962,21 +3197,7 @@ function drawMeasure(dark){
     ctx.textAlign='left';ctx.textBaseline='bottom';
     ctx.fillText(`P${i+1}(${pt.x.toFixed(0)},${pt.y.toFixed(0)})`,c.x+8,c.y-4);
   });
-  if(measurePts.length===2){
-    const c1=w2c(measurePts[0].x,measurePts[0].y);
-    const c2=w2c(measurePts[1].x,measurePts[1].y);
-    ctx.beginPath();ctx.moveTo(c1.x,c1.y);ctx.lineTo(c2.x,c2.y);
-    ctx.strokeStyle='#facc15';ctx.lineWidth=2;ctx.setLineDash([6,4]);ctx.stroke();ctx.setLineDash([]);
-    const d=dist(measurePts[0],measurePts[1]);
-    const mx=(c1.x+c2.x)/2,my=(c1.y+c2.y)/2;
-    const label=d.toFixed(1)+' mm';
-    ctx.font='bold 13px sans-serif';
-    const tw=ctx.measureText(label).width;
-    ctx.fillStyle=dark?'rgba(10,10,18,0.85)':'rgba(238,240,245,0.9)';
-    ctx.fillRect(mx-tw/2-5,my-12,tw+10,20);
-    ctx.fillStyle='#facc15';ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText(label,mx,my);
-  }
+  if(measurePts.length>=_measNeed())_drawOneMeasure(measureType,measurePts,dark,false);
   ctx.restore();
 }
 
@@ -3188,6 +3409,39 @@ function alignOU(){
   render();
 }
 
+// ===== 数値入力のイージングアニメーション（ease-in-out） =====
+// items: [{id, from, to}] / onFrame省略時は毎フレーム render()
+let _animTimer=null;
+function _animateVals(items,dur,onFrame){
+  if(_animTimer)cancelAnimationFrame(_animTimer);
+  const t0=performance.now();
+  const ease=t=>t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+  function step(now){
+    const t=Math.min(1,(now-t0)/dur);
+    const k=ease(t);
+    items.forEach(it=>{
+      const el=$(it.id); if(!el)return;
+      const v=it.from+(it.to-it.from)*k;
+      el.value=v.toFixed(1);
+      const n=$(it.id+'-num'); if(n)n.value=v.toFixed(1);
+    });
+    if(onFrame)onFrame(); else render();
+    _animTimer = t<1 ? requestAnimationFrame(step) : null;
+  }
+  _animTimer=requestAnimationFrame(step);
+}
+
+// ロールイン再生：現在のOU位置を最終位置として、OU前方向の後方からスライドイン
+function animateRollIn(){
+  const tx=gv('ou-x'),ty=gv('ou-y');
+  const f=rot(0,1,d2r(gv('ou-ang')));   // OU前方向（world）
+  const back=2500;                      // 進入開始距離(mm)
+  _animateVals([
+    {id:'ou-x',from:tx-f.x*back,to:tx},
+    {id:'ou-y',from:ty-f.y*back,to:ty}
+  ],1500);
+}
+
 function changeBG(){render();}
 
 let drag={active:false,moved:false,mode:'',sx:0,sy:0,ox:0,oy:0,oAng:0};
@@ -3215,16 +3469,7 @@ cvs.addEventListener('mousedown',e=>{
 
   // 計測モード
   if(measureMode){
-    if(measurePts.length<2){
-      measurePts.push({x:wp.x,y:wp.y});
-      if(measurePts.length===1){$('measure-txt').textContent='クリックで2点目を指定してください';}
-      else{
-        const d=dist(measurePts[0],measurePts[1]);
-        $('measure-txt').textContent='計測完了';
-        const badge=$('measure-badge');badge.textContent=d.toFixed(1)+' mm';badge.style.display='inline-block';
-      }
-      render();
-    }else{clearMeasure();}
+    addMeasurePt(wp.x,wp.y);
     return;
   }
 
@@ -3412,8 +3657,8 @@ cvs.addEventListener('click',function(e){
   if(typeof paintMode!=='undefined'&&paintMode) return;
   if(e.shiftKey||e.altKey||e.ctrlKey||e.metaKey) return;
   var rect=cvs.getBoundingClientRect();
-  var wx=(e.clientX-rect.left-cvs.width/2-VIEW.px)/VIEW.sc;
-  var wy=-(e.clientY-rect.top-cvs.height/2-VIEW.py)/VIEW.sc;
+  var wx=(e.clientX-rect.left-CV.w/2-VIEW.px)/VIEW.sc;
+  var wy=-(e.clientY-rect.top-CV.h/2-VIEW.py)/VIEW.sc;
   var hit=null;
   if(typeof customObjs!=='undefined'){
     for(var i=customObjs.length-1;i>=0;i--){
@@ -3741,13 +3986,17 @@ function getPresetData(){
     ouX:gv('ou-x'),ouY:gv('ou-y'),ouAng:gv('ou-ang'),
     tblW:gv('tbl-w'),tblD:gv('tbl-d'),tblX:gv('tbl-x'),tblY:gv('tbl-y'),tblAng:gv('tbl-ang'),
     portX:gv('port-x'),portY:gv('port-y'),
+    patientX:gv('patient-x'),patientY:gv('patient-y'),patientH:gv('patient-h'),
+    patientPose:($('patient-pose')||{}).value,
+    patientBuild:($('patient-build')||{}).value,
     tiltType:$('tilt-type').value,tiltAng:gv('tilt-ang'),portH:gv('port-h'),
     tiltAxisX:gv('tilt-axis-x'),tiltAxisY:gv('tilt-axis-y'),
     tblLenAnchor:$('tbl-len-anchor').value, tiltStrength:gv('tilt-strength'),
     tiltLRType:$('tilt-lr-type').value, tiltLRAng:gv('tilt-lr-ang'),
     extraPorts: JSON.parse(JSON.stringify(extraPorts)),
     activeTblPreset: activeTblPresetName,
-    paintStrokes: JSON.parse(JSON.stringify(paintStrokes))
+    paintStrokes: JSON.parse(JSON.stringify(paintStrokes)),
+    customObjs: JSON.parse(JSON.stringify(customObjs||[]))
   };
 }
 function applyPresetData(d){
@@ -3761,6 +4010,11 @@ function applyPresetData(d){
   s('ou-x',d.ouX);s('ou-y',d.ouY);s('ou-ang',d.ouAng);
   s('tbl-w',d.tblW);s('tbl-d',d.tblD);s('tbl-x',d.tblX);s('tbl-y',d.tblY);s('tbl-ang',d.tblAng);
   s('port-x',d.portX);s('port-y',d.portY);
+  if(d.patientX!==undefined&&$('patient-x'))s('patient-x',d.patientX);
+  if(d.patientY!==undefined&&$('patient-y'))s('patient-y',d.patientY);
+  if(d.patientH!==undefined&&$('patient-h'))s('patient-h',d.patientH);
+  if(d.patientPose!==undefined&&$('patient-pose'))$('patient-pose').value=d.patientPose;
+  if(d.patientBuild!==undefined&&$('patient-build'))$('patient-build').value=d.patientBuild;
   $('tilt-type').value=d.tiltType;
   s('tilt-ang',d.tiltAng);s('port-h',d.portH);
   if(d.tiltAxisX!==undefined)s('tilt-axis-x',d.tiltAxisX);
@@ -3776,12 +4030,18 @@ function applyPresetData(d){
   $('gl-ang-num').value=(d.glAng||0).toFixed(1);
   if(d.extraPorts){extraPorts=d.extraPorts;nextPortId=extraPorts.reduce((m,p)=>Math.max(m,p.id),0)+1;renderPortList();}
   if(d.paintStrokes){paintStrokes=d.paintStrokes;}
+  if(Array.isArray(d.customObjs)){
+    customObjs=JSON.parse(JSON.stringify(d.customObjs));
+    nextObjId=customObjs.reduce(function(m,o){return Math.max(m,o.id||0);},0)+1;
+    if(typeof renderObjList==='function')renderObjList();
+  }
   if(d.activeTblPreset!==undefined){activeTblPresetName=d.activeTblPreset;renderTblPresetGrid();
   if(typeof renderArmPresetGrid==="function") renderArmPresetGrid();}
   if(typeof initArmPattern==='function') initArmPattern();
   _resetTblAnchorBase();
   render();
 }
+function escHTML(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function loadPresets(){return JSON.parse(localStorage.getItem('hinotori_presets')||'[]');}
 function savePresets(arr){localStorage.setItem('hinotori_presets',JSON.stringify(arr));}
 
@@ -3798,13 +4058,164 @@ function renderPresetList(){
   const arr=loadPresets();const el=$('pr-list');
   if(!arr.length){el.innerHTML='<div style="font-size:10px;color:var(--muted);padding:4px 0">プリセットなし</div>';return;}
   el.innerHTML=arr.map((p,i)=>`<div class="pr-item">
-    <span class="pr-name" title="${p.name}">${p.name}</span>
+    <span class="pr-name" title="${escHTML(p.name)}">${escHTML(p.name)}</span>
     <button class="btn btn-sm" onclick="loadPreset(${i})">読込</button>
     <button class="btn btn-sm btn-del" onclick="deletePreset(${i})">✕</button>
   </div>`).join('');
 }
 function loadPreset(i){const arr=loadPresets();if(arr[i])applyPresetData(arr[i].data);}
-function deletePreset(i){const arr=loadPresets();arr.splice(i,1);savePresets(arr);renderPresetList();}
+function deletePreset(i){
+  const arr=loadPresets();if(!arr[i])return;
+  if(!confirm('プリセット「'+arr[i].name+'」を削除しますか？'))return;
+  arr.splice(i,1);savePresets(arr);renderPresetList();
+}
+
+// ====== 全プリセット一括バックアップ（書出 / 読込） ======
+var BACKUP_PRESET_KEYS=['hinotori_presets','hinotori_tbl_presets','hinotori_arm_presets_v1','hinotori_obj_presets_v1','hinotori_init_v1','hinotori_kbd_step'];
+function exportAllPresets(){
+  const out={type:'hinotori_presets_backup',version:1,date:new Date().toISOString(),data:{}};
+  BACKUP_PRESET_KEYS.forEach(function(k){const v=localStorage.getItem(k);if(v!==null)out.data[k]=v;});
+  const blob=new Blob([JSON.stringify(out,null,1)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='hinotori_presets_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);},5000);
+}
+function importAllPresets(input){
+  const f=input.files&&input.files[0]; if(!f)return;
+  const reader=new FileReader();
+  reader.onload=function(){
+    try{
+      const obj=JSON.parse(reader.result);
+      if(!obj||obj.type!=='hinotori_presets_backup'||!obj.data)throw new Error('プリセットバックアップ形式ではありません');
+      if(!confirm('プリセットを読み込みます。同名のプリセットは読込データで上書きされます。よろしいですか？'))return;
+      // 名前付きプリセット配列は同名マージ、それ以外（デフォルト設定等）は上書き
+      const mergeKeys=['hinotori_presets','hinotori_tbl_presets','hinotori_arm_presets_v1','hinotori_obj_presets_v1'];
+      Object.keys(obj.data).forEach(function(k){
+        if(BACKUP_PRESET_KEYS.indexOf(k)<0)return;
+        if(mergeKeys.indexOf(k)>=0){
+          let cur=[],inc=[];
+          try{cur=JSON.parse(localStorage.getItem(k)||'[]');}catch(e){}
+          try{inc=JSON.parse(obj.data[k]);}catch(e){}
+          if(!Array.isArray(cur))cur=[];
+          if(!Array.isArray(inc))return;
+          inc.forEach(function(p){
+            if(!p||typeof p.name!=='string')return;
+            const i=cur.findIndex(function(c){return c&&c.name===p.name;});
+            if(i>=0)cur[i]=p;else cur.push(p);
+          });
+          localStorage.setItem(k,JSON.stringify(cur));
+        }else{
+          localStorage.setItem(k,obj.data[k]);
+        }
+      });
+      renderPresetList();
+      if(typeof renderTblPresetGrid==='function')renderTblPresetGrid();
+      if(typeof renderArmPresetGrid==='function')renderArmPresetGrid();
+      if(typeof renderObjPresets==='function')renderObjPresets();
+      alert('プリセットを読み込みました');
+    }catch(e){alert('読み込みに失敗しました: '+e.message);}
+    input.value='';
+  };
+  reader.readAsText(f);
+}
+
+// ====== レイアウト共有（URL / QR / JSONファイル） ======
+function _b64uEnc(str){return btoa(unescape(encodeURIComponent(str))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
+function _b64uDec(s){s=String(s).replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return decodeURIComponent(escape(atob(s)));}
+function _shareData(){
+  const data=getPresetData();
+  const inc=$('share-incl-paint')&&$('share-incl-paint').checked;
+  if(!inc) delete data.paintStrokes;
+  return data;
+}
+function buildShareURL(){
+  return location.href.split('#')[0]+'#s='+_b64uEnc(JSON.stringify(_shareData()));
+}
+function refreshShareURL(){
+  const u=buildShareURL();
+  const el=$('share-url'); if(el)el.value=u;
+  const msg=$('share-msg');
+  if(msg)msg.textContent = u.length>2300 ? '⚠ データ量が多いためQRコード化できない場合があります（URLコピー/JSON保存をご利用ください）' : '';
+  const q=$('share-qr'); if(q){q.innerHTML='';q.style.padding='0';}
+}
+function openShareModal(){
+  refreshShareURL();
+  const nb=$('share-native-btn'); if(nb)nb.style.display=navigator.share?'':'none';
+  $('share-modal').classList.add('show');
+}
+function closeShareModal(){$('share-modal').classList.remove('show');}
+function copyShareURL(){
+  const u=$('share-url').value;
+  const done=function(){const m=$('share-msg');if(m)m.textContent='✅ URLをコピーしました';};
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(u).then(done,function(){_shareCopyFallback();done();});
+  }else{_shareCopyFallback();done();}
+}
+function _shareCopyFallback(){
+  const el=$('share-url'); el.select();
+  try{document.execCommand('copy');}catch(e){}
+}
+function shareNative(){
+  if(!navigator.share)return;
+  navigator.share({title:'hinotori Roll-in Simulator レイアウト',url:$('share-url').value}).catch(function(){});
+}
+let _qrLibLoading=false;
+function showShareQR(){
+  const box=$('share-qr'),msg=$('share-msg');
+  const draw=function(){
+    try{
+      const qr=qrcode(0,'L');qr.addData($('share-url').value);qr.make();
+      box.innerHTML=qr.createImgTag(3,8);box.style.padding='8px';
+      if(msg)msg.textContent='スマホのカメラで読み取ってレイアウトを開けます';
+    }catch(e){
+      box.innerHTML='';box.style.padding='0';
+      if(msg)msg.textContent='⚠ データ量が多くQR化できません。URLコピーまたはJSON保存をご利用ください';
+    }
+  };
+  if(typeof qrcode!=='undefined'){draw();return;}
+  if(_qrLibLoading)return;
+  _qrLibLoading=true;
+  if(msg)msg.textContent='QRライブラリを読み込み中…';
+  const sc=document.createElement('script');
+  sc.src='https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
+  sc.onload=function(){_qrLibLoading=false;draw();};
+  sc.onerror=function(){_qrLibLoading=false;if(msg)msg.textContent='⚠ オフラインのためQR生成できません。URLコピーまたはJSON保存をご利用ください';};
+  document.head.appendChild(sc);
+}
+function exportShareJSON(){
+  const blob=new Blob([JSON.stringify(_shareData(),null,1)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='hinotori_layout_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);},5000);
+}
+function importShareJSON(input){
+  const f=input.files&&input.files[0]; if(!f)return;
+  const fr=new FileReader();
+  fr.onload=function(){
+    try{
+      applySharedData(JSON.parse(fr.result));
+      const m=$('share-msg');if(m)m.textContent='✅ レイアウトを読み込みました';
+    }catch(e){alert('JSONの読み込みに失敗しました: '+e.message);}
+    input.value='';
+  };
+  fr.readAsText(f);
+}
+function applySharedData(d){
+  applyPresetData(d);   // customObjs含めて復元される
+}
+// 起動時：URLハッシュに共有データ(#s=...)があれば適用
+window.addEventListener('load',function(){
+  if(location.hash&&location.hash.indexOf('#s=')===0){
+    setTimeout(function(){
+      try{ applySharedData(JSON.parse(_b64uDec(location.hash.slice(3)))); }
+      catch(e){ console.warn('共有データの読み込みに失敗:',e); }
+    },350);
+  }
+});
 
 
 
@@ -3820,26 +4231,28 @@ function doExport(){
   }
 
   // 欄外情報付きで出力
-  const infoH = 180; // 欄外の高さ
+  const infoH = 180; // 欄外の高さ（CSSpx基準。高DPIではDPR倍で出力）
   const margin = 16;
   const offCanvas = document.createElement('canvas');
   offCanvas.width  = cvs.width;
-  offCanvas.height = cvs.height + infoH;
+  offCanvas.height = cvs.height + Math.round(infoH*DPR);
   const oc = offCanvas.getContext('2d');
 
   // シミュレーター画面をコピー
   oc.drawImage(cvs, 0, 0);
+  // 以降の欄外描画はCSSpx基準（高DPIでも文字サイズ比率を保つ）
+  oc.scale(DPR, DPR);
 
   // 欄外背景
   const dark = $('bg-mode').value === 'dark';
   oc.fillStyle = dark ? '#0d0d1a' : '#dde0e8';
-  oc.fillRect(0, cvs.height, cvs.width, infoH);
+  oc.fillRect(0, CV.h, CV.w, infoH);
 
   // 区切り線
   oc.strokeStyle = dark ? '#3a3a5a' : '#aab0c0';
   oc.lineWidth = 1;
   oc.beginPath();
-  oc.moveTo(0, cvs.height); oc.lineTo(cvs.width, cvs.height);
+  oc.moveTo(0, CV.h); oc.lineTo(CV.w, CV.h);
   oc.stroke();
 
   // 情報収集
@@ -3874,18 +4287,18 @@ function doExport(){
   oc.fillStyle = accentColor;
   oc.textAlign = 'left';
   oc.textBaseline = 'top';
-  oc.fillText('hinotori Roll-In Simulator — 設定情報', margin, cvs.height + 10);
+  oc.fillText('hinotori Roll-In Simulator — 設定情報', margin, CV.h + 10);
 
   oc.font = '11px sans-serif';
   oc.fillStyle = mutedColor;
   oc.textAlign = 'right';
-  oc.fillText(dateStr, cvs.width - margin, cvs.height + 11);
+  oc.fillText(dateStr, CV.w - margin, CV.h + 11);
 
   // 区切り
   oc.strokeStyle = dark ? '#2a2a4a' : '#c0c5d0';
   oc.lineWidth = 0.5;
   oc.beginPath();
-  oc.moveTo(margin, cvs.height + 27); oc.lineTo(cvs.width - margin, cvs.height + 27);
+  oc.moveTo(margin, CV.h + 27); oc.lineTo(CV.w - margin, CV.h + 27);
   oc.stroke();
 
   // 情報テーブル (2列レイアウト)
@@ -3903,9 +4316,9 @@ function doExport(){
     ['カメラ距離',   `${camDist} mm`],
   ];
 
-  const colW   = Math.floor((cvs.width - margin*2) / 2) - 10;
+  const colW   = Math.floor((CV.w - margin*2) / 2) - 10;
   const rowH   = 22;
-  const startY = cvs.height + 34;
+  const startY = CV.h + 34;
   const half   = Math.ceil(items.length / 2);
 
   items.forEach((item, i)=>{
@@ -4065,15 +4478,7 @@ cvs.addEventListener('touchstart',e=>{
       refreshColorPickers();render();return;
     }
     if(measureMode){
-      if(measurePts.length<2){
-        measurePts.push({x:wp.x,y:wp.y});
-        if(measurePts.length===1){$('measure-txt').textContent='2点目をタップしてください';}
-        else{
-          const d=dist(measurePts[0],measurePts[1]);$('measure-txt').textContent='計測完了';
-          const badge=$('measure-badge');badge.textContent=d.toFixed(1)+' mm';badge.style.display='inline-block';
-        }
-        render();
-      }else{clearMeasure();}
+      addMeasurePt(wp.x,wp.y);
       return;
     }
     // タップ配置モード
@@ -4158,7 +4563,7 @@ cvs.addEventListener('touchmove',e=>{
     const oldSc=VIEW.sc;
     const newSc=Math.max(0.02,Math.min(1,oldSc*factor));
     const af=newSc/oldSc;                 // スケールのクランプ後の実効倍率
-    const ox=cvs.width/2, oy=cvs.height/2;// 描画変換の中心オフセット
+    const ox=CV.w/2, oy=CV.h/2;// 描画変換の中心オフセット（CSSpx基準）
     const oldMx=touch.lastMid.x-rect.left, oldMy=touch.lastMid.y-rect.top;
     const newMx=newMid.x-rect.left,        newMy=newMid.y-rect.top;
     // 直前の指の中点(のワールド点)を今の指の中点に固定したままズーム
@@ -4262,6 +4667,7 @@ cvs.addEventListener('touchend',e=>{
     <div style="display:flex;gap:4px;margin-bottom:4px">
       <button class="sp-mb" id="smb-pin1" onclick="spMeasPin(1)" style="font-size:10px;padding:4px 8px;pointer-events:auto">📍P1</button>
       <button class="sp-mb" id="smb-pin2" onclick="spMeasPin(2)" style="font-size:10px;padding:4px 8px;pointer-events:auto">📍P2</button>
+      <button class="sp-mb" id="smb-pin3" onclick="spMeasPin(3)" style="font-size:10px;padding:4px 8px;pointer-events:auto;display:none">📍P3</button>
     </div>
     <div class="sp-row"><div class="sp-blank"></div><button class="sp-btn" onclick="spMeasStep('u')">↑</button><div class="sp-blank"></div></div>
     <div class="sp-row"><button class="sp-btn" onclick="spMeasStep('l')">←</button><div class="sp-center" style="font-size:9px">微調整</div><button class="sp-btn" onclick="spMeasStep('r')">→</button></div>
@@ -4560,7 +4966,7 @@ function slStep(id, mn, mx, step, dir){
 
 // ===== カスタム初期設定 =====
 var INIT_FIELDS  = ["ou-w", "ou-d", "ou-piv", "ou-ang", "ou-ang-num", "ou-x", "ou-y", "arm-sw", "arm-sw-num", "arm-x", "arm-y", "arm-bw", "arm-bh", "cam-x", "cam-y", "gl-ang", "gl-ang-num", "gl-len", "tbl-w", "tbl-d", "tbl-ang", "tbl-ang-num", "tbl-x", "tbl-y", "port-label", "port-x", "port-y", "port-h", "tilt-axis-x", "tilt-axis-y", "tilt-strength", "tilt-ang", "tilt-ang-num", "tilt-lr-ang", "tilt-lr-ang-num", "rollin-arrow-len", "patient-h", "patient-x", "patient-y"];
-var INIT_SELECTS = ["tilt-type", "tilt-lr-type", "bg-mode", "patient-pose", "tbl-len-anchor"];
+var INIT_SELECTS = ["tilt-type", "tilt-lr-type", "bg-mode", "patient-pose", "patient-build", "tbl-len-anchor"];
 var INIT_CHECKS  = ["show-guide", "show-grid", "show-dims", "show-ou-label", "show-armbase-label", "show-camport-label", "show-cam-label", "show-rollin", "show-port-label", "show-port-dist", "show-patient", "show-tilt-axis", "show-tilt-offset"];
 var INIT_KEY     = 'hinotori_init_v1';
 
@@ -4623,10 +5029,23 @@ function loadCustomInitial(){
 function setAng(rangeId, numId, val, cb){
   var r=document.getElementById(rangeId);
   var n=document.getElementById(numId);
-  if(r) r.value=val;
-  if(n) n.value=val;
-  if(cb && window[cb]) window[cb]();
-  else render();
+  var done=function(){
+    if(n) n.value=val;
+    if(cb && window[cb]) window[cb]();
+    else render();
+  };
+  if(!r){ done(); return; }
+  var from=parseFloat(r.value)||0;
+  // 角度プリセットへのジャンプはイージングで遷移（差が小さい場合は即時）
+  if(typeof _animateVals==='function' && Math.abs(from-val)>1){
+    _animateVals([{id:rangeId,from:from,to:val}],350,function(){
+      if(n) n.value=parseFloat(r.value).toFixed(1);
+      if(cb && window[cb]) window[cb]();
+      else render();
+    });
+  }else{
+    r.value=val; done();
+  }
 }
 
 // ===== オブジェクトプリセット保存 =====
@@ -4708,7 +5127,7 @@ function renderObjPresets(){
       var locked = p.locked || false;
       return '<div class="obj-preset-item">'
         + '<button class="btn btn-sm" onclick="applyObjPreset('+i+')" style="font-size:10px;padding:2px 7px;flex-shrink:0">読込</button>'
-        + '<span class="obj-preset-name" style="cursor:default">'+p.name+'</span>'
+        + '<span class="obj-preset-name" style="cursor:default">'+escHTML(p.name)+'</span>'
         + '<button class="obj-preset-del" onclick="toggleObjPresetLock('+i+')" title="'+(locked?'ロック解除':'ロック')+'" style="color:'+(locked?'#f59e0b':'var(--muted)')+';">'+(locked?'🔒':'🔓')+'</button>'
         + '<button class="obj-preset-del" onclick="deleteObjPreset('+i+')" style="'+(locked?'opacity:0.3;pointer-events:none':'')+'">✕</button>'
         + '</div>';
@@ -4745,7 +5164,7 @@ var _measPinSel = 1; // 選択中のピン（1 or 2）
 
 function spMeasPin(n){
   _measPinSel = n;
-  ['smb-pin1','smb-pin2'].forEach(function(id,i){
+  ['smb-pin1','smb-pin2','smb-pin3'].forEach(function(id,i){
     var b=document.getElementById(id);
     if(b) b.className='sp-mb'+(i+1===n?' sp-on':'');
   });
@@ -4759,21 +5178,14 @@ function spMeasStep(dir){
   if(dir==='d') dy=-step;
   if(dir==='r') dx= step;
   if(dir==='l') dx=-step;
-  var idx = _measPinSel - 1;
+  var idx = Math.min(_measPinSel - 1, _measNeed() - 1);
   if(!measurePts[idx]){
-    // ピンがまだなければ中心に配置
-    measurePts[idx] = {x:0, y:0};
+    // ピンがまだなければ中心に配置（手前の未配置ピンも補完）
+    for(var i=0;i<=idx;i++){ if(!measurePts[i]) measurePts[i]={x:0,y:0}; }
   }
   measurePts[idx].x += dx;
   measurePts[idx].y += dy;
-  // 距離更新
-  if(measurePts.length>=2){
-    var d=dist(measurePts[0],measurePts[1]);
-    var badge=document.getElementById('measure-badge');
-    if(badge){ badge.textContent=d.toFixed(1)+' mm'; badge.style.display='inline-block'; }
-    var txt=document.getElementById('measure-txt');
-    if(txt) txt.textContent='計測完了';
-  }
+  updateMeasureStatus();
   render();
 }
 
@@ -5281,7 +5693,7 @@ function renderArmPresetGrid(){
     var isActive = JSON.stringify({armSw:p.armSw,armX:p.armX,armY:p.armY,armBw:p.armBw,armBh:p.armBh,camX:p.camX,camY:p.camY}) === cur;
     return '<div style="display:flex;gap:2px;align-items:stretch;">'
       + '<button class="arm-preset-btn'+(isActive?' btn-active':'')+'" data-idx="'+i+'" style="flex:1;">'
-      + '<div style="font-weight:700;">'+p.name+'</div>'
+      + '<div style="font-weight:700;">'+escHTML(p.name)+'</div>'
       + '<div style="font-size:9px;color:var(--muted);">旋回'+p.armSw+'° / CAM('+p.camX+','+p.camY+')</div>'
       + '</button>'
       + '<button class="arm-preset-btn" data-del="'+i+'" style="width:28px;padding:2px;border-color:#ef4444;color:#ef4444;flex-shrink:0;">🗑</button>'
@@ -5391,6 +5803,7 @@ function resetToInitial(){
   // 患者
   s('patient-h', 170);
   var _pPose = document.getElementById('patient-pose'); if(_pPose) _pPose.value = 'supine';
+  var _pBuild = document.getElementById('patient-build'); if(_pBuild) _pBuild.value = '1';
   s('patient-x', 0); s('patient-y', 0);
   var _showPat = document.getElementById('show-patient'); if(_showPat) _showPat.checked = false;
   // 表示設定
