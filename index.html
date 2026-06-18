@@ -30,11 +30,13 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
   padding-right:env(safe-area-inset-right);
 }
 header{background:var(--surf);border-bottom:1px solid var(--border);padding:0 16px;height:50px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:8px;overflow:hidden;position:relative;z-index:10000;}
-.logo{display:flex;align-items:center;gap:10px}
-.logo-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
-.logo-name{font-size:15px;font-weight:700;letter-spacing:.5px}
-.logo-sub{font-size:10px;color:var(--muted)}
-.hdr-btns{display:flex;gap:6px}
+.logo{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.logo-icon{width:34px;height:34px;flex-shrink:0;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.logo-name{font-size:15px;font-weight:700;letter-spacing:.5px;white-space:nowrap}
+.logo-sub{font-size:10px;color:var(--muted);white-space:nowrap}
+.hdr-btns{display:flex;gap:6px;flex-shrink:1;min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-ms-overflow-style:none;-webkit-overflow-scrolling:touch}
+.hdr-btns::-webkit-scrollbar{display:none}
+.hdr-btns>*{flex-shrink:0}
 .main{display:flex;flex:1;overflow:hidden;position:relative}
 .sidebar{position:fixed;top:0;left:0;height:100%;z-index:99000;transform:translateX(-100%);width:min(290px,85vw);background:var(--surf);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;min-height:0;transition:transform .25s ease;padding-top:env(safe-area-inset-top)}
 .sidebar-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:200px}
@@ -916,15 +918,15 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
     <details class="help-credit" style="margin-top:16px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
       <summary style="cursor:pointer;font-weight:600;font-size:12px;padding:10px 12px;background:rgba(255,255,255,0.04);user-select:none">ⓘ クレジット・お問い合わせ</summary>
       <div style="font-size:12px;line-height:1.75;padding:12px 14px;color:var(--text)">
-        開発者：川嶋 克基（金沢大学附属病院 ME機器管理センター）<br>
-        Version 1.1.0<br>
-        © 2026 川嶋 克基<br>
+        開発者：川嶋 克典（○○病院 臨床工学科）<br>
+        Version 1.0.0<br>
+        © 2026 川嶋 克典<br>
         ライセンス：CC BY-NC 4.0<br>
         <br>
         学会発表：「hinotoriロールインシミュレーターの開発」<br>
-        第19回 日本ロボット外科学会学術集会（2027年2月）<br>
+        第○回 日本ロボット外科学会学術集会（2026年2月）<br>
         <br>
-        お問い合わせ：<span style="color:var(--accent)">kawashimakatsuki.ce@gmail.com</span><br>
+        お問い合わせ：<span style="color:var(--accent)">xxxxxxxx@xxxxxx.jp</span><br>
         <br>
         <span style="color:var(--muted);font-size:11px">本シミュレーターは教育・イメージ共有を目的としたツールです。実際の手術における判断は必ず実機および施設のプロトコルに従ってください。本ツールの使用により生じたいかなる損害についても開発者は責任を負いません。</span>
       </div>
