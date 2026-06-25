@@ -432,19 +432,20 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
             <button class="btn btn-sm" id="arm-pat-par"  onclick="setArmPattern('parallel')" style="flex:1;white-space:normal;line-height:1.25;padding:7px 4px;">肺・上腹部・骨盤部</button>
             <button class="btn btn-sm" id="arm-pat-perp" onclick="setArmPattern('perp')" style="flex:1;white-space:normal;line-height:1.25;padding:7px 4px;">食道・腎臓・下腹部</button>
           </div>
-          <div style="font-size:10px;color:var(--muted);margin-top:3px">基準姿勢から左右±27.8°の範囲で旋回できます</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:3px">基準姿勢から左右±28.0°の範囲で旋回できます</div>
         </div>
-        <div class="f"><label>アームベース旋回角度（基準=0°）<span class="rv" id="arm-sw-range"></span></label>
+        <div class="f"><label>アームベース旋回角度（基準=0°）</label>
+          <div id="arm-sw-range" style="font-size:10px;color:var(--accent);margin:0 0 4px 0;font-weight:700"></div>
           <div class="slider-row">
             <button class="sl-btn" onclick="armSwStep(-1)" title="減らす">－</button>
-            <input type="range" id="arm-sw" min="-27.8" max="27.8" step="0.1" value="0" oninput="onArmSwivel();checkHiddenArm()">
+            <input type="range" id="arm-sw" min="-28.0" max="28.0" step="0.1" value="0" oninput="onArmSwivel();checkHiddenArm()">
             <button class="sl-btn" onclick="armSwStep(1)" title="増やす">＋</button>
-            <input type="number" id="arm-sw-num" min="-27.8" max="27.8" step="0.1" value="0" oninput="onArmSwivelNum()">
+            <input type="number" id="arm-sw-num" min="-28.0" max="28.0" step="0.1" value="0" oninput="onArmSwivelNum()">
           </div>
           <div class="ang-presets"><button class="ang-preset-btn" onclick="setArmSwRel(-1)">左端</button><button class="ang-preset-btn" onclick="setArmSwRel(0)">基準</button><button class="ang-preset-btn" onclick="setArmSwRel(1)">右端</button></div>
         </div>
         <div class="row">
-          <div class="f"><label>アームベース中心 X（OU前面中央から）(mm)</label><input type="number" id="arm-x" value="415" oninput="render()"></div>
+          <div class="f"><label>アームベース中心 X（OU前面中央から）(mm)</label><input type="number" id="arm-x" value="415" oninput="if(typeof refreshArmSwingRange==='function')refreshArmSwingRange();render()"></div>
           <div class="f"><label>アームベース中心 Y（OU前面中央から）(mm)</label><input type="number" id="arm-y" value="580" oninput="render()"></div>
         </div>
         <div style="margin-top:2px"><button class="btn btn-sm" onclick="flipArmX()" title="アームベース中心Xの符号を反転して左右を入れ替えます" style="width:100%">⇄ アームベースX 左右反転（＋／－入替）</button></div>
@@ -918,15 +919,15 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
     <details class="help-credit" style="margin-top:16px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
       <summary style="cursor:pointer;font-weight:600;font-size:12px;padding:10px 12px;background:rgba(255,255,255,0.04);user-select:none">ⓘ クレジット・お問い合わせ</summary>
       <div style="font-size:12px;line-height:1.75;padding:12px 14px;color:var(--text)">
-        開発者：川嶋 克基（金沢大学附属病院 ME機器管理センター）<br>
-        Version 1.1.1<br>
-        © 2026 川嶋 克基<br>
+        開発者：川嶋 克典（○○病院 臨床工学科）<br>
+        Version 1.0.0<br>
+        © 2026 川嶋 克典<br>
         ライセンス：CC BY-NC 4.0<br>
         <br>
         学会発表：「hinotoriロールインシミュレーターの開発」<br>
-        第19回 日本ロボット外科学会学術集会（2027年2月）<br>
+        第○回 日本ロボット外科学会学術集会（2026年2月）<br>
         <br>
-        お問い合わせ：<span style="color:var(--accent)">kawashimakatsuki.ce@gmail.com</span><br>
+        お問い合わせ：<span style="color:var(--accent)">xxxxxxxx@xxxxxx.jp</span><br>
         <br>
         <span style="color:var(--muted);font-size:11px">本シミュレーターは教育・イメージ共有を目的としたツールです。実際の手術における判断は必ず実機および施設のプロトコルに従ってください。本ツールの使用により生じたいかなる損害についても開発者は責任を負いません。</span>
       </div>
@@ -2526,6 +2527,7 @@ function drawOU(dark){
     ctx.beginPath();ctx.roundRect(bx-5,by-5,bw+10,bh+10,cr+5);ctx.stroke();
   }
 
+  let _armSide=1;   // アームが伸びる側（±1）。連結部を同じ側に接続するため共有する
   ctx.save();
   ctx.translate(abx*sc,-aby*sc);
   ctx.rotate(-sw);
@@ -2548,6 +2550,7 @@ function drawOU(dark){
       const _Mw = rot(abx,aby,ouA);                              // マニフォールド中心(ワールド, OU基準)
       _side = (_axB.x*_Mw.x + _axB.y*_Mw.y) > 0 ? -1 : 1;        // ルールB
     }
+    _armSide=_side;   // 連結部を同じ側に接続するため共有
     const _root=_side*abwPx*0.42;
     const _len=Math.max(abwPx*1.4,14);
     const _tipx=_side*(abwPx*0.42+_len);
@@ -2572,31 +2575,36 @@ function drawOU(dark){
     }
     ctx.lineCap='butt';
   }
-  // 連結アーム（カート支柱 → アームマニフォールド）※アームより前面・アームベースより背面
+  // アームのサブフレームを閉じてOU基準系へ戻す
   ctx.restore();
+
+  // ===== 連結アーム（カート支柱 → アームベース手前） =====
+  // 関節なしの従来形。カート支柱からアームベース本体手前まで一直線でつなぐ。
+  // 接続先はアームベースの長手中央・正面。先端は本体に接触させない（隙間を空ける）。
+  // ※アームベース本体より先に描画し、本体が最前面（連結部の上）に来るようにする。
   {
-    const _colx=0,_coly=by+bh*0.45;
-    // 接続点：マニフォールド長辺（カート支柱側）の中点。中心ではなく側面に繋ぐ
-    const _cx=abx*sc,_cy=-aby*sc;
-    const _lkx=(_colx-_cx)*Math.cos(sw)-(_coly-_cy)*Math.sin(sw); // 支柱位置のアームベースローカルX
-    const _sgn=_lkx>=0?1:-1;
-    const _ex=_sgn*armBW*sc*0.5;
-    const _apx=_cx+_ex*Math.cos(sw);
-    const _apy=_cy-_ex*Math.sin(sw);
-    ctx.save();ctx.lineCap='round';
-    const _cw=Math.max(7,armBW*sc*0.55);
-    ctx.beginPath();ctx.moveTo(_colx,_coly);ctx.lineTo(_apx,_apy);
-    ctx.strokeStyle='#000';                                    // 黒枠（統一）
-    ctx.lineWidth=_cw;ctx.stroke();
-    ctx.beginPath();ctx.moveTo(_colx,_coly);ctx.lineTo(_apx,_apy);
-    ctx.strokeStyle=dark?'rgba(229,233,244,0.97)':'#ffffff';   // 白本体
-    ctx.lineWidth=Math.max(2,_cw-4);ctx.stroke();
+    const _colx=0,_coly=by+bh*0.45;          // カート側支柱（OU基準）
+    const _cx=abx*sc,_cy=-aby*sc;            // マニフォールド中心
+    const _cw=Math.max(7,armBW*sc*0.5);      // 連結アームの太さ
+    const _halfW=armBW*sc*0.5;
+    const _S = _armSide;                      // 接続する側＝アームが伸びる側（連結部は必ずアーム側に接続）
+    // ローカル→OU基準（rotate(-sw)の逆変換）
+    const _toO=function(lx,ly){return{x:_cx+lx*Math.cos(sw)+ly*Math.sin(sw),y:_cy-lx*Math.sin(sw)+ly*Math.cos(sw)};};
+    const _ep=_toO(_S*_halfW,0);              // 先端：アームベース本体エッジに接続（隙間なし）
+    ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
+    // 黒枠（カート→先端：一直線）
+    ctx.beginPath();ctx.moveTo(_colx,_coly);ctx.lineTo(_ep.x,_ep.y);
+    ctx.strokeStyle='#000';ctx.lineWidth=_cw;ctx.stroke();
+    // 白本体
+    ctx.beginPath();ctx.moveTo(_colx,_coly);ctx.lineTo(_ep.x,_ep.y);
+    ctx.strokeStyle=dark?'rgba(229,233,244,0.97)':'#ffffff';ctx.lineWidth=Math.max(2,_cw-4);ctx.stroke();
     ctx.restore();
     // カート側支柱（円）
     ctx.beginPath();ctx.arc(_colx,_coly,Math.max(6,armBW*sc*0.4),0,Math.PI*2);
-    ctx.fillStyle=dark?'#e8edf5':'#ffffff';ctx.fill();
-    ctx.strokeStyle='#000';ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle=dark?'#e8edf5':'#ffffff';ctx.fill();ctx.strokeStyle='#000';ctx.lineWidth=2;ctx.stroke();
   }
+
+  // ===== アームベース本体（マニフォールド） =====
   ctx.save();
   ctx.translate(abx*sc,-aby*sc);
   ctx.rotate(-sw);
@@ -2612,8 +2620,12 @@ function drawOU(dark){
   ctx.beginPath();ctx.arc(0,0,5,0,Math.PI*2);
   ctx.fillStyle='#f97316';ctx.fill();
   ctx.strokeStyle='#fed7aa';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.restore();
 
-  // ポジショニングカメラ（最前面）
+  // ===== ポジショニングカメラ（最前面） =====
+  ctx.save();
+  ctx.translate(abx*sc,-aby*sc);
+  ctx.rotate(-sw);
   const clx=camX*sc,cly=-camY*sc;
   ctx.beginPath();ctx.arc(clx,cly,10,0,Math.PI*2);
   ctx.fillStyle='#00d4ff';ctx.fill();
@@ -3219,13 +3231,19 @@ function updateStatus(d,cam){
     var _abase=(typeof ARM_BASE!=='undefined'&&window.armPattern&&ARM_BASE[window.armPattern]!==undefined)?ARM_BASE[window.armPattern]:0;
     var _arel=_asw-_abase;
     var _apat=(typeof ARM_PAT_LABEL!=='undefined'&&ARM_PAT_LABEL[window.armPattern])?ARM_PAT_LABEL[window.armPattern]:'';
-    var _alim=(typeof ARM_SWING!=='undefined')?ARM_SWING:27.8;
-    var _atLimit=Math.abs(_arel)>=_alim-0.05;
+    var _rng=(typeof armRelRange==='function')?armRelRange(window.armPattern):{inner:ARM_SWING,outer:ARM_SWING,dir:1};
+    var _isIn=_arel*_rng.dir>0.05, _isOut=_arel*_rng.dir<-0.05;
+    var _dir=_isIn?'内旋':(_isOut?'外旋':'');                // 旋回方向（内旋/外旋・アーム向き依存）
+    var _dirLim=_isIn?_rng.inner:_rng.outer;
+    var _atLimit=Math.abs(_arel)>=_dirLim-0.05;
     var _ab=$('arm-sw-s');
-    _ab.textContent=Math.abs(_arel).toFixed(1)+'°';   // 旋回角は常に0〜27.8の絶対値表示
+    _ab.textContent=Math.abs(_arel).toFixed(1)+'°'+(_dir?'('+_dir+')':'');   // 旋回角＋方向(内旋/外旋)
     _ab.style.color=_atLimit?'#f59e0b':'#06b6d4';
     _ab.style.borderColor=_atLimit?'#f59e0b':'#06b6d4';
-    var _ai=$('arm-sw-info'); if(_ai) _ai.textContent='可動±'+_alim.toFixed(1)+'°'+(_apat?'（'+_apat+'）':'');
+    var _inS=_rng.dir>0?'+':'−', _outS=_rng.dir>0?'−':'+';
+    var _inT='内旋('+_inS+')'+_rng.inner.toFixed(1)+'°', _outT='外旋('+_outS+')'+_rng.outer.toFixed(1)+'°';
+    var _ord=_rng.dir>0?(_outT+'/'+_inT):(_inT+'/'+_outT);   // スライダー左(−)→右(+)順
+    var _ai=$('arm-sw-info'); if(_ai) _ai.textContent=_ord+(_apat?'（'+_apat+'）':'');
   }
   $('cam-pos-s').textContent=`(${cam.x.toFixed(0)}, ${cam.y.toFixed(0)})mm`;
   const rollinAng=getRollinAngle();
@@ -3297,8 +3315,33 @@ function syncRange(numId,rangeId){
 }
 function onOUAngle(){syncNum('ou-ang','ou-ang-num');render();}
 // ===== ロールイン姿勢パターン（直交/平行）と旋回制限 =====
-var ARM_SWING = 27.8;                         // 基準から左右の最大旋回角(°)
+var ARM_SWING = 27.8;                         // (後方互換) 既定の対称旋回幅(°)
 var ARM_BASE  = { parallel:0, perp:90 };      // 各パターンの基準旋回角(°)
+// パターンごとの相対旋回制限の大きさ（°）。inner=内旋側 / outer=外旋側
+var ARM_LIMIT = { parallel:{ inner:28.0, outer:28.0 }, perp:{ inner:42.0, outer:0.0 } };
+function armLimit(p){ return ARM_LIMIT[p] || { inner:ARM_SWING, outer:ARM_SWING }; }
+// アームベース中心Xの符号で内旋方向が決まる（アームが無い側が正面）。X≥0: 内旋=+方向 / X<0: 内旋=−方向
+function armDir(){ var el=document.getElementById('arm-x'); return (parseFloat((el||{value:1}).value)||0) < 0 ? -1 : 1; }
+// 現在のパターン・アーム向きでの相対旋回角の範囲(基準0°)。lo/hi=相対角の下限/上限, dir=内旋の符号
+function armRelRange(p){
+  var lim=armLimit(p), d=armDir();
+  var a=d*lim.inner, b=-d*lim.outer;            // a=内旋端 / b=外旋端（相対角）
+  return { lo:Math.min(a,b), hi:Math.max(a,b), inner:lim.inner, outer:lim.outer, dir:d };
+}
+// スライダー/数値入力の可動範囲と表示を現在のアーム向きに合わせて更新（現在値はクランプ）
+function refreshArmSwingRange(){
+  var p=window.armPattern, base=(ARM_BASE[p]!==undefined?ARM_BASE[p]:0), rng=armRelRange(p);
+  var sw=document.getElementById('arm-sw'), swn=document.getElementById('arm-sw-num');
+  if(sw){
+    var cur=parseFloat(sw.value); if(isNaN(cur))cur=base;
+    var rel=Math.max(rng.lo,Math.min(rng.hi,cur-base));
+    sw.min=base+rng.lo; sw.max=base+rng.hi; sw.value=base+rel;
+  }
+  if(swn){ swn.min=rng.lo; swn.max=rng.hi; }
+  var rg=document.getElementById('arm-sw-range');
+  if(rg){ var inS=rng.dir>0?'+':'−', outS=rng.dir>0?'−':'+'; var inT='内旋('+inS+') '+rng.inner.toFixed(1)+'°', outT='外旋('+outS+') '+rng.outer.toFixed(1)+'°'; rg.textContent = rng.dir>0 ? (outT+' ／ '+inT) : (inT+' ／ '+outT); }   // スライダー左(−)→右(+)順
+  if(typeof onArmSwivel==='function') onArmSwivel();
+}
 var ARM_PAT_LABEL = { parallel:'肺・上腹部・骨盤部', perp:'食道・腎臓・下腹部' }; // 表示用ラベル
 // パターンごとのアームベース中心（OU前面中央からのmm）。ロールイン姿勢で中心が異なるため反映する。
 var ARM_CENTER = { parallel:{x:415, y:580}, perp:{x:415, y:500} };
@@ -3314,20 +3357,21 @@ function setArmPattern(p, applyCenter){
     if(_ay) _ay.value = ARM_CENTER[p].y;
   }
   var base = ARM_BASE[p];
-  var lo = base - ARM_SWING, hi = base + ARM_SWING;
+  var rng = armRelRange(p);
+  var lo = base + rng.lo, hi = base + rng.hi;   // 絶対角範囲（アーム向きで内旋/外旋の側が決まる）
   var sw = document.getElementById('arm-sw'), swn = document.getElementById('arm-sw-num');
   // 現在値を min/max 変更前に読む（range要素は min 設定時に value を即クランプするため）
   var cur = parseFloat((sw||{value:base}).value); if(isNaN(cur)) cur = base;
   if(cur < lo || cur > hi) cur = base;
   if(sw){ sw.min = lo; sw.max = hi; sw.value = cur; }   // スライダーは絶対角(位置用)
-  if(swn){ swn.min = -ARM_SWING; swn.max = ARM_SWING; } // 数値入力は基準0°の相対角
+  if(swn){ swn.min = rng.lo; swn.max = rng.hi; }        // 数値入力は基準0°の相対角
   // ボタンのアクティブ表示
   var bp = document.getElementById('arm-pat-par'), bo = document.getElementById('arm-pat-perp');
   if(bp) bp.classList.toggle('btn-active', p==='parallel');
   if(bo) bo.classList.toggle('btn-active', p==='perp');
   // 可動範囲表示（相対）
   var rg = document.getElementById('arm-sw-range');
-  if(rg) rg.textContent = '可動 ±'+ARM_SWING.toFixed(1)+'°';
+  if(rg){ var _inS=rng.dir>0?'+':'−', _outS=rng.dir>0?'−':'+'; var _inT='内旋('+_inS+') '+rng.inner.toFixed(1)+'°', _outT='外旋('+_outS+') '+rng.outer.toFixed(1)+'°'; rg.textContent = rng.dir>0 ? (_outT+' ／ '+_inT) : (_inT+' ／ '+_outT); }   // スライダー左(−)→右(+)順
   if(typeof checkHiddenArm==='function') checkHiddenArm();
   onArmSwivel();
 }
@@ -3344,8 +3388,10 @@ function armSwStep(dir){
 }
 function setArmSwRel(side){
   var base = ARM_BASE[window.armPattern] || 0;
+  var rng = armRelRange(window.armPattern);
+  var rel = side<0 ? rng.lo : (side>0 ? rng.hi : 0);   // 左端=スライダー下限 / 右端=上限
   var sw = document.getElementById('arm-sw');
-  sw.value = _armClamp(base + side*ARM_SWING);
+  sw.value = _armClamp(base + rel);
   onArmSwivel(); if(typeof checkHiddenArm==='function') checkHiddenArm();
 }
 // アームベース中心XのＸ符号を反転（左右反転）
@@ -3353,6 +3399,18 @@ function flipArmX(){
   var el = document.getElementById('arm-x');
   if(!el) return;
   el.value = -(parseFloat(el.value)||0);
+  // 旋回も左右反転：相対旋回角の符号を反転（反転後の可動範囲でクランプ・表示更新）
+  var base = (ARM_BASE[window.armPattern]!==undefined)?ARM_BASE[window.armPattern]:0;
+  var sw = document.getElementById('arm-sw');
+  if(sw){
+    var rel=(parseFloat(sw.value)||0)-base;            // 反転前の相対角
+    var rng=armRelRange(window.armPattern);            // 反転後の範囲（arm-xは反転済み）
+    var nrel=Math.max(rng.lo,Math.min(rng.hi,-rel));   // 符号反転してクランプ
+    sw.min=base+rng.lo; sw.max=base+rng.hi;            // 先に範囲を更新（即時クランプ回避）
+    sw.value=base+nrel;
+  }
+  refreshArmSwingRange();
+  if(typeof checkHiddenArm==='function') checkHiddenArm();
   render();
 }
 function initArmPattern(){
@@ -3380,7 +3438,8 @@ function onOUAngleNum(){syncRange('ou-ang-num','ou-ang');render();}
 function onArmSwivelNum(){
   var num=document.getElementById('arm-sw-num'); if(!num) return;
   var rel=parseFloat(num.value); if(isNaN(rel)) return;
-  rel=Math.max(-ARM_SWING,Math.min(ARM_SWING,rel));
+  var rng=armRelRange(window.armPattern);
+  rel=Math.max(rng.lo,Math.min(rng.hi,rel));
   var base=(ARM_BASE[window.armPattern]!==undefined)?ARM_BASE[window.armPattern]:0;
   var sw=document.getElementById('arm-sw'); if(sw) sw.value=_armClamp(base+rel);
   onArmSwivel();
@@ -3989,6 +4048,7 @@ function getPresetData(){
     tblW:gv('tbl-w'),tblD:gv('tbl-d'),tblX:gv('tbl-x'),tblY:gv('tbl-y'),tblAng:gv('tbl-ang'),
     portX:gv('port-x'),portY:gv('port-y'),
     patientX:gv('patient-x'),patientY:gv('patient-y'),patientH:gv('patient-h'),
+    patientShow:gc('show-patient'),
     patientPose:($('patient-pose')||{}).value,
     patientBuild:($('patient-build')||{}).value,
     tiltType:$('tilt-type').value,tiltAng:gv('tilt-ang'),portH:gv('port-h'),
@@ -3996,6 +4056,7 @@ function getPresetData(){
     tblLenAnchor:$('tbl-len-anchor').value, tiltStrength:gv('tilt-strength'),
     tiltLRType:$('tilt-lr-type').value, tiltLRAng:gv('tilt-lr-ang'),
     extraPorts: JSON.parse(JSON.stringify(extraPorts)),
+    portLineStart: portLineStart, portLineEnd: portLineEnd,
     activeTblPreset: activeTblPresetName,
     paintStrokes: JSON.parse(JSON.stringify(paintStrokes)),
     customObjs: JSON.parse(JSON.stringify(customObjs||[]))
@@ -4015,6 +4076,7 @@ function applyPresetData(d){
   if(d.patientX!==undefined&&$('patient-x'))s('patient-x',d.patientX);
   if(d.patientY!==undefined&&$('patient-y'))s('patient-y',d.patientY);
   if(d.patientH!==undefined&&$('patient-h'))s('patient-h',d.patientH);
+  if(d.patientShow!==undefined&&$('show-patient'))$('show-patient').checked=d.patientShow;
   if(d.patientPose!==undefined&&$('patient-pose'))$('patient-pose').value=d.patientPose;
   if(d.patientBuild!==undefined&&$('patient-build'))$('patient-build').value=d.patientBuild;
   $('tilt-type').value=d.tiltType;
@@ -4030,7 +4092,13 @@ function applyPresetData(d){
   $('tbl-ang-num').value=(d.tblAng||0).toFixed(1);
   $('tilt-ang-num').value=(d.tiltAng||0).toFixed(1);
   $('gl-ang-num').value=(d.glAng||0).toFixed(1);
-  if(d.extraPorts){extraPorts=d.extraPorts;nextPortId=extraPorts.reduce((m,p)=>Math.max(m,p.id),0)+1;renderPortList();}
+  if(d.extraPorts){
+    extraPorts=d.extraPorts;nextPortId=extraPorts.reduce((m,p)=>Math.max(m,p.id),0)+1;
+    // ポート列の角度計測（起点/終点）を復元。renderPortList内のensurePortLineDefaultsより前に設定する
+    if(d.portLineStart!==undefined) portLineStart=d.portLineStart;
+    if(d.portLineEnd!==undefined) portLineEnd=d.portLineEnd;
+    renderPortList();
+  }
   if(d.paintStrokes){paintStrokes=d.paintStrokes;}
   if(Array.isArray(d.customObjs)){
     customObjs=JSON.parse(JSON.stringify(d.customObjs));
