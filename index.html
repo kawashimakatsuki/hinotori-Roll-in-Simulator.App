@@ -132,9 +132,10 @@ canvas.paint-text{cursor:text}
 .pr-list{max-height:140px;overflow-y:auto;margin-top:5px}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:999999;display:none}
 .modal-bg.show{display:flex}
-.modal{background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:20px;width:320px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.modal{background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:20px;width:320px;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.5)}
 .modal h3{margin-bottom:14px;font-size:14px}
-.modal input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--text);padding:7px 10px;font-size:13px;outline:none;margin-bottom:12px}
+.modal input:not([type=checkbox]):not([type=file]){width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--text);padding:7px 10px;font-size:13px;outline:none;margin-bottom:12px}
+.modal input[type=checkbox]{width:auto;flex-shrink:0;margin:0}
 .modal input:focus{border-color:var(--accent)}
 .modal .btn-row{justify-content:flex-end}
 hr.sep{border:none;border-top:1px solid var(--border);margin:8px 0}
@@ -343,6 +344,7 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
 .sp-corner.rot-tbl{border-color:#60a5fa;color:#60a5fa;}
 .sp-corner.rot-arm{border-color:#06b6d4;color:#06b6d4;}
 .sp-corner:empty,.sp-corner.hidden{visibility:hidden;pointer-events:none;}
+@keyframes recBlink{0%,100%{opacity:1}50%{opacity:0.4}}
 
 
 @keyframes fanfare-spin{0%{transform:rotate(-20deg) scale(0.5);opacity:0;}100%{transform:rotate(0deg) scale(1);opacity:1;}}
@@ -396,7 +398,7 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
             <button class="sl-btn" onclick="slStep('ou-ang',-180,180,0.5,+1)" title="増やす">＋</button>
             <input type="number" id="ou-ang-num" min="-180" max="180" step="0.5" value="45" oninput="onOUAngleNum()">
           </div>
-          <div class="ang-presets"><button class="ang-preset-btn" onclick="setAng('ou-ang','ou-ang-num',0,'onOUAngle')">0°</button><button class="ang-preset-btn" onclick="setAng('ou-ang','ou-ang-num',45,'onOUAngle')">45°</button><button class="ang-preset-btn" onclick="setAng('ou-ang','ou-ang-num',90,'onOUAngle')">90°</button><button class="ang-preset-btn" onclick="setAng('ou-ang','ou-ang-num',-45,'onOUAngle')">-45°</button><button class="ang-preset-btn" onclick="setAng('ou-ang','ou-ang-num',-90,'onOUAngle')">-90°</button></div>
+          <div class="ang-presets" style="flex-wrap:nowrap;gap:2px"><button class="ang-preset-btn" style="flex:1;min-width:0;padding:3px 1px;font-size:9px" onclick="setAng('ou-ang','ou-ang-num',-180,'onOUAngle')">-180</button><button class="ang-preset-btn" style="flex:1;min-width:0;padding:3px 1px;font-size:9px" onclick="setAng('ou-ang','ou-ang-num',-135,'onOUAngle')">-135</button><button class="ang-preset-btn" style="flex:1;min-width:0;padding:3px 1px;font-size:9px" onclick="setAng('ou-ang','ou-ang-num',-90,'onOUAngle')">-90</button><button class="ang-preset-btn" style="flex:1;min-width:0;padding:3px 1px;font-size:9px" onclick="setAng('ou-ang','ou-ang-num',-45,'onOUAngle')">-45</button><button class="ang-preset-btn" style="flex:1;min-width:0;padding:3px 1px;font-size:9px;font-weight:700" onclick="setAng('ou-ang','ou-ang-num',0,'onOUAngle')">0</button><button class="ang-preset-btn" style="flex:1;min-width:0;padding:3px 1px;font-size:9px" onclick="setAng('ou-ang','ou-ang-num',45,'onOUAngle')">45</button><button class="ang-preset-btn" style="flex:1;min-width:0;padding:3px 1px;font-size:9px" onclick="setAng('ou-ang','ou-ang-num',90,'onOUAngle')">90</button><button class="ang-preset-btn" style="flex:1;min-width:0;padding:3px 1px;font-size:9px" onclick="setAng('ou-ang','ou-ang-num',135,'onOUAngle')">135</button><button class="ang-preset-btn" style="flex:1;min-width:0;padding:3px 1px;font-size:9px" onclick="setAng('ou-ang','ou-ang-num',180,'onOUAngle')">180</button></div>
         </div>
         <div class="row">
           <div class="f"><label>X位置 (mm)</label><input type="number" id="ou-x" value="1252.1" oninput="render()"></div>
@@ -752,6 +754,24 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
     </div>
 
     <div class="sec">
+      <div class="sec-hd" onclick="toggleSec(this)"><span>▶ ロールイン再生</span><span class="arr">▶</span></div>
+      <div class="sec-bd">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:6px">「⏺ 記録開始」を押してからOUの移動・角度・アーム旋回を操作し、「⏹ 停止」で記録。<b>操作した順番どおり</b>に再生します</div>
+        <div class="btn-row">
+          <button class="btn btn-sm" id="rollin-rec-btn" onclick="toggleRollinRec()">⏺ 記録開始</button>
+          <button class="btn btn-sm btn-del" onclick="clearRollinRec()">✕ クリア</button>
+        </div>
+        <div style="font-size:9px;color:var(--muted);margin-top:3px">キーボード <b>P</b> でも記録の開始／停止ができます</div>
+        <div id="rollin-status" style="font-size:10px;color:var(--muted);margin:6px 0">未記録</div>
+        <div class="f"><label>再生時間 (秒)</label><input type="number" id="rollin-dur" value="1.5" min="0.3" max="30" step="0.1" style="width:100%"></div>
+        <div class="btn-row">
+          <button class="btn btn-acc btn-sm" onclick="animateRollIn()">▶ 再生</button>
+          <button class="btn btn-sm" onclick="gotoRollinStart()">⏮ 先頭へ</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
       <div class="sec-hd" onclick="toggleSec(this)"><span>⚙️ 表示設定</span><span class="arr">▶</span></div>
       <div class="sec-bd">
         <div class="f"><label>許容範囲 直径 (mm)</label><input type="number" id="tol" value="50" min="1" max="200" oninput="render()"></div>
@@ -785,6 +805,7 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
 
 <div class="status">
   <div class="status-row">
+    <span id="rollin-rec-indicator" style="display:none;color:#fff;background:#ef4444;font-weight:700;padding:2px 10px;border-radius:5px;animation:recBlink 1s infinite">● 記録中</span>
     <span>📏 距離:</span>
     <span class="dist-badge" id="dist-badge">—</span>
     <span id="dist-txt">カメラとポートの距離を計測中...</span>
@@ -919,15 +940,15 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
     <details class="help-credit" style="margin-top:16px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
       <summary style="cursor:pointer;font-weight:600;font-size:12px;padding:10px 12px;background:rgba(255,255,255,0.04);user-select:none">ⓘ クレジット・お問い合わせ</summary>
       <div style="font-size:12px;line-height:1.75;padding:12px 14px;color:var(--text)">
-        開発者：川嶋 克基（金沢大学附属病院 ME機器管理センター）<br>
-        Version 1.1.2<br>
-        © 2026 川嶋 克基<br>
+        開発者：川嶋 克典（○○病院 臨床工学科）<br>
+        Version 1.0.0<br>
+        © 2026 川嶋 克典<br>
         ライセンス：CC BY-NC 4.0<br>
         <br>
         学会発表：「hinotoriロールインシミュレーターの開発」<br>
-        第19回 日本ロボット外科学会学術集会（2026年2月）<br>
+        第○回 日本ロボット外科学会学術集会（2026年2月）<br>
         <br>
-        お問い合わせ：<span style="color:var(--accent)">kawashimakatsuki.ce@gmail.com</span><br>
+        お問い合わせ：<span style="color:var(--accent)">xxxxxxxx@xxxxxx.jp</span><br>
         <br>
         <span style="color:var(--muted);font-size:11px">本シミュレーターは教育・イメージ共有を目的としたツールです。実際の手術における判断は必ず実機および施設のプロトコルに従ってください。本ツールの使用により生じたいかなる損害についても開発者は責任を負いません。</span>
       </div>
@@ -977,8 +998,12 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
     <label style="display:flex;align-items:center;gap:6px;font-size:11px;margin-bottom:8px;cursor:pointer">
       <input type="checkbox" id="share-incl-paint" onchange="showShareQR()">ペイント描画を含める
     </label>
-    <div style="font-size:10px;color:var(--muted);margin-bottom:6px">📱 対面共有：<b>送る側</b>はこのQRを表示、<b>受け取る側</b>は下の「📷 QRを読み取り」でスキャンすると同じレイアウトが開きます</div>
+    <div style="font-size:10px;color:var(--muted);margin-bottom:6px">📱 対面共有：QRを<b>相手の標準カメラ</b>で読む（アプリをWeb公開時）／または<b>アプリの「📷 QRを読み取り」</b>で読む、どちらでもレイアウトが開きます</div>
     <div id="share-qr" style="display:flex;justify-content:center;margin-bottom:6px;background:#fff;border-radius:8px;padding:0;min-height:20px"></div>
+    <div class="f" style="margin-bottom:6px">
+      <label style="font-size:10px;color:var(--muted)">QR共有用の公開URL（Web公開したアプリのアドレス。空欄なら現在のURL）</label>
+      <input type="text" id="share-base-url" placeholder="https://xxxx.github.io/hinotori/index.html" oninput="onShareBaseInput()" style="width:100%;font-size:10px">
+    </div>
     <div class="btn-row" style="margin-bottom:8px">
       <button class="btn btn-acc btn-sm" onclick="openScanModal()">📷 QRを読み取り</button>
       <button class="btn btn-sm" onclick="showShareQR()">🔄 QR再生成</button>
@@ -1517,6 +1542,8 @@ document.addEventListener('keydown', e=>{
   // ズーム: ;(拡大) / -(縮小)
   if(e.key===';'||e.code==='Semicolon'){ e.preventDefault(); zoomStep(1.2); }
   if(e.key==='-'||e.code==='Minus'){ e.preventDefault(); zoomStep(0.8); }
+  // ロールイン記録の開始/停止: P
+  if(key==='P' && !e.ctrlKey && !e.metaKey){ e.preventDefault(); if(typeof toggleRollinRec==='function') toggleRollinRec(); }
   // 視点リセット: Space
   if(e.key===' '){ e.preventDefault(); VIEW.px=0; VIEW.py=0; render(); }
 });
@@ -3492,24 +3519,31 @@ function onTableAngleNum(){syncRange('tbl-ang-num','tbl-ang');render();}
 function onTiltAngleNum(){syncRange('tilt-ang-num','tilt-ang');render();}
 function onGuideAngleNum(){syncRange('gl-ang-num','gl-ang');render();}
 
-// 既定ズーム(ZOOM_BASE_SC)=1倍の基準。ズームは1倍刻みの整数倍率で扱う（端数なし）
+// 既定ズーム(ZOOM_BASE_SC)=1倍の基準。許可倍率は 1,1.5,2,3,…（端数は1.5のみ）
 var ZOOM_BASE_SC = 0.077;
-var ZOOM_MAX_MAG = 13;   // 最大倍率
-function currentZoomMag(){ return Math.max(1, Math.round(VIEW.sc / ZOOM_BASE_SC)); }
+var ZOOM_LEVELS = [1,1.5,2,3,4,5,6,7,8,9,10,11,12,13];
+function _zoomNearestIdx(m){ var bi=0,bd=1e9; for(var i=0;i<ZOOM_LEVELS.length;i++){var d=Math.abs(ZOOM_LEVELS[i]-m); if(d<bd){bd=d;bi=i;}} return bi; }
+function currentZoomMag(){ return ZOOM_LEVELS[_zoomNearestIdx(VIEW.sc/ZOOM_BASE_SC)]; }
+function snapZoomSc(sc){ return Math.min(1, ZOOM_LEVELS[_zoomNearestIdx(sc/ZOOM_BASE_SC)]*ZOOM_BASE_SC); }
 function setZoomMag(mag){
-  mag = Math.max(1, Math.min(ZOOM_MAX_MAG, Math.round(mag)));
-  VIEW.sc = Math.min(1, mag * ZOOM_BASE_SC);
-  VIEW.px = 0; VIEW.py = 0;
+  var oldSc=VIEW.sc;
+  VIEW.sc = Math.min(1, ZOOM_LEVELS[_zoomNearestIdx(mag)]*ZOOM_BASE_SC);
+  // 画面中心の点を保ったままズーム（原点に戻さない）
+  var r = oldSc>0 ? VIEW.sc/oldSc : 1;
+  VIEW.px *= r; VIEW.py *= r;
   render();
 }
 function resetView(){VIEW.px=0;VIEW.py=0;VIEW.sc=ZOOM_BASE_SC;render();}   // 1倍
 function zoomStep(factor){
-  // ＋（factor>=1で拡大）/ −（<1で縮小）を1倍刻みで変化
-  setZoomMag(currentZoomMag() + (factor>=1 ? 1 : -1));
+  // ＋（factor>=1で拡大）/ −（<1で縮小）を許可倍率の1段ずつ変化
+  var i=_zoomNearestIdx(VIEW.sc/ZOOM_BASE_SC);
+  i = (factor>=1) ? Math.min(ZOOM_LEVELS.length-1, i+1) : Math.max(0, i-1);
+  setZoomMag(ZOOM_LEVELS[i]);
 }
 function updateZoomBadge(){
   var el=document.getElementById('zoom-mag'); if(!el)return;
-  el.textContent=currentZoomMag()+'×';
+  var m=currentZoomMag();
+  el.textContent=(Number.isInteger(m)?m:m.toFixed(1))+'×';
 }
 
 
@@ -3546,16 +3580,99 @@ function _animateVals(items,dur,onFrame){
   _animTimer=requestAnimationFrame(step);
 }
 
-// ロールイン再生：現在のOU位置を最終位置として、OU前方向の後方からスライドイン
+// ===== ロールイン再生：操作を録画し、実際の操作順どおりに再生 =====
+var rollinRec = { on:false, frames:[], t0:0, timer:null };
+function _rollinCapture(){
+  return { ouX:gv('ou-x'), ouY:gv('ou-y'), ouAng:gv('ou-ang'), armSw:gv('arm-sw') };
+}
+function _rollinApply(k){
+  if(!k)return;
+  $('ou-x').value=k.ouX; $('ou-y').value=k.ouY;
+  $('ou-ang').value=k.ouAng; if($('ou-ang-num'))$('ou-ang-num').value=(parseFloat(k.ouAng)||0).toFixed(1);
+  $('arm-sw').value=k.armSw;
+  if(typeof onArmSwivel==='function') onArmSwivel(); else render();
+}
+function _lerp(a,b,k){ return a+(b-a)*k; }
+function _rollinApplyInterp(a,b,k){
+  $('ou-x').value=_lerp(+a.ouX,+b.ouX,k).toFixed(1);
+  $('ou-y').value=_lerp(+a.ouY,+b.ouY,k).toFixed(1);
+  var oa=_lerp(+a.ouAng,+b.ouAng,k); $('ou-ang').value=oa.toFixed(1); if($('ou-ang-num'))$('ou-ang-num').value=oa.toFixed(1);
+  $('arm-sw').value=_lerp(+a.armSw,+b.armSw,k).toFixed(1);
+  if(typeof onArmSwivel==='function') onArmSwivel(); else render();
+}
+function _saveRollin(){ try{ localStorage.setItem('hinotori_rollin', JSON.stringify(rollinRec.frames)); }catch(e){} }
+function _loadRollin(){ try{ var v=localStorage.getItem('hinotori_rollin'); if(v){ var a=JSON.parse(v); if(Array.isArray(a)) rollinRec.frames=a; } }catch(e){} }
+// 記録中に一定間隔でサンプリング（変化があればフレーム追加）
+function _recFrame(){
+  var f=_rollinCapture(); f.t=performance.now()-rollinRec.t0;
+  var last=rollinRec.frames[rollinRec.frames.length-1];
+  if(!last || Math.abs(f.ouX-last.ouX)>0.3 || Math.abs(f.ouY-last.ouY)>0.3 || Math.abs(f.ouAng-last.ouAng)>0.05 || Math.abs(f.armSw-last.armSw)>0.05){
+    rollinRec.frames.push(f);
+    if(rollinRec.on) updateRollinStatus();
+  }
+}
+function toggleRollinRec(){ if(rollinRec.on) stopRollinRec(); else startRollinRec(); }
+function startRollinRec(){
+  rollinRec.on=true; rollinRec.frames=[]; rollinRec.t0=performance.now();
+  _recFrame();
+  rollinRec.timer=setInterval(function(){ if(rollinRec.on)_recFrame(); }, 50);
+  var b=$('rollin-rec-btn'); if(b){ b.textContent='⏹ 記録停止'; b.classList.add('btn-active'); }
+  updateRollinStatus();
+}
+function stopRollinRec(){
+  rollinRec.on=false; if(rollinRec.timer){ clearInterval(rollinRec.timer); rollinRec.timer=null; }
+  _recFrame();
+  var b=$('rollin-rec-btn'); if(b){ b.textContent='⏺ 記録開始'; b.classList.remove('btn-active'); }
+  _saveRollin(); updateRollinStatus();
+}
+function clearRollinRec(){ if(rollinRec.on) stopRollinRec(); rollinRec.frames=[]; _saveRollin(); updateRollinStatus(); }
+function gotoRollinStart(){ if(rollinRec.frames.length) _rollinApply(rollinRec.frames[0]); }
+function updateRollinStatus(){
+  var el=$('rollin-status');
+  if(el){
+    if(rollinRec.on){ el.innerHTML='<span style="color:#ef4444">● 記録中… '+rollinRec.frames.length+' フレーム</span>'; }
+    else if(rollinRec.frames.length>=2){ el.innerHTML='<span style="color:#4ade80">✓ 記録済み（'+rollinRec.frames.length+' フレーム）</span>'; }
+    else { el.textContent='未記録'; }
+  }
+  // 下のバーの記録中インジケーター
+  var ind=$('rollin-rec-indicator');
+  if(ind){
+    if(rollinRec.on){ ind.style.display=''; ind.textContent='● ロールイン記録中 '+rollinRec.frames.length+'F'; }
+    else { ind.style.display='none'; }
+  }
+}
 function animateRollIn(){
+  var frames=rollinRec.frames;
+  var dur=(parseFloat(($('rollin-dur')||{}).value)||1.5)*1000;
+  if(frames && frames.length>=2){
+    // 記録したフレームを、実際の操作順・相対タイミングどおりに再生（全体を再生時間へスケール）
+    if(_animTimer)cancelAnimationFrame(_animTimer);
+    var t0rec=frames[0].t, tEnd=frames[frames.length-1].t;
+    var total=(tEnd-t0rec)||1, scale=dur/total;
+    var start=performance.now();
+    _rollinApply(frames[0]);
+    var step=function(now){
+      var e=t0rec+(now-start)/scale;   // 記録タイムライン上の経過位置
+      if(e>=tEnd){ _rollinApply(frames[frames.length-1]); _animTimer=null; return; }
+      var i=0; while(i<frames.length-1 && frames[i+1].t<=e) i++;
+      var a=frames[i], b=frames[i+1];
+      var span=(b.t-a.t)||1, k=(e-a.t)/span;
+      _rollinApplyInterp(a,b,k);
+      _animTimer=requestAnimationFrame(step);
+    };
+    _animTimer=requestAnimationFrame(step);
+    return;
+  }
+  // 未記録時：従来のスライドイン（現在位置を終点に、OU前方向の後方から進入）
   const tx=gv('ou-x'),ty=gv('ou-y');
-  const f=rot(0,1,d2r(gv('ou-ang')));   // OU前方向（world）
-  const back=2500;                      // 進入開始距離(mm)
+  const f=rot(0,1,d2r(gv('ou-ang')));
+  const back=2500;
   _animateVals([
     {id:'ou-x',from:tx-f.x*back,to:tx},
     {id:'ou-y',from:ty-f.y*back,to:ty}
-  ],1500);
+  ],dur);
 }
+_loadRollin(); updateRollinStatus();
 
 function changeBG(){render();}
 
@@ -4297,11 +4414,20 @@ function _shareData(){
   if(nm) data.presetName=nm;
   return data;
 }
-// 共有コード：レイアウトデータ本体をQRに入れる（URLではないので配布先に依存せず対面共有できる）
-function buildShareCode(){
-  return 'HNTR1:'+_b64uEnc(JSON.stringify(_shareData()));
+// QR共有用の公開URL（Web公開したアプリのアドレス）。未設定なら現在のURLを使用
+function shareBaseURL(){
+  var u=(localStorage.getItem('hinotori_share_base')||'').trim();
+  return u || location.href.split('#')[0];
 }
-// スキャン/貼り付けした共有コード（新QR・旧URL#s=・生base64のいずれか）を復元
+function buildShareURL(){
+  return shareBaseURL()+'#s='+_b64uEnc(JSON.stringify(_shareData()));
+}
+function onShareBaseInput(){
+  var el=document.getElementById('share-base-url');
+  try{ localStorage.setItem('hinotori_share_base', el?el.value.trim():''); }catch(e){}
+  showShareQR();
+}
+// スキャン/貼り付けしたQR（URL#s= または 生base64）からレイアウトを復元
 function applyShareCode(text){
   if(!text) return false;
   var s=String(text).trim();
@@ -4310,7 +4436,11 @@ function applyShareCode(text){
   try{ applySharedData(JSON.parse(_b64uDec(payload))); return true; }
   catch(e){ return false; }
 }
-function openShareModal(){ const m=$('share-msg'); if(m)m.textContent=''; $('share-modal').classList.add('show'); showShareQR(); }
+function openShareModal(){
+  const m=$('share-msg'); if(m)m.textContent='';
+  var b=document.getElementById('share-base-url'); if(b)b.value=(localStorage.getItem('hinotori_share_base')||'');
+  $('share-modal').classList.add('show'); showShareQR();
+}
 function closeShareModal(){$('share-modal').classList.remove('show');}
 // QRコード生成（URLは表示せずQRのみ。読み取り側は起動時の #s= 復元で同じレイアウトを開く）
 let _qrLibLoading=false;
@@ -4319,14 +4449,16 @@ function showShareQR(){
   if(!box)return;
   const draw=function(){
     try{
-      const code=buildShareCode();
-      const qr=qrcode(0,'M');qr.addData(code);qr.make();
+      const url=buildShareURL();
+      const qr=qrcode(0,'M');qr.addData(url);qr.make();
       box.innerHTML=qr.createImgTag(4,8);
       // QR画像を枠内に収める（固定幅＋はみ出し防止）
       var im=box.querySelector('img');
       if(im){ im.removeAttribute('width'); im.removeAttribute('height'); im.style.cssText='width:220px;max-width:100%;height:auto;image-rendering:pixelated;display:block;margin:0 auto;'; }
       box.style.padding='8px';
-      if(msg) msg.textContent = code.length>2200 ? '⚠ データ量が多く読み取りにくい場合があります（JSON保存をご利用ください）' : '受け取る側はアプリの「📷 QRを読み取り」でスキャン';
+      var localOnly=/^file:/i.test(url)||/^https?:\/\/(localhost|127\.0\.0\.1|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/i.test(url);
+      if(msg) msg.textContent = url.length>2200 ? '⚠ データ量が多く読み取りにくい場合があります（JSON保存をご利用ください）'
+        : (localOnly ? '⚠ 標準カメラで読むには、下の「公開URL」にWeb公開したアプリのアドレスを設定してください（アプリの📷読み取りは今のままでも可）' : '📷 標準カメラ／アプリの📷読み取り どちらでも読めます');
     }catch(e){
       box.innerHTML='';box.style.padding='0';
       if(msg)msg.textContent='⚠ データ量が多くQR化できません。JSON保存をご利用ください';
@@ -4814,7 +4946,7 @@ cvs.addEventListener('touchmove',e=>{
     const newDist=touchDist(t),newMid=touchMid(t);
     const factor=newDist/touch.lastDist;
     const oldSc=VIEW.sc;
-    const newSc=Math.min(1, Math.max(1, Math.round(oldSc*factor/0.077))*0.077);   // 整数倍率にスナップ
+    const newSc=snapZoomSc(oldSc*factor);   // 許可倍率(1,1.5,2,3…)にスナップ
     const af=newSc/oldSc;                 // スケールのクランプ後の実効倍率
     const ox=CV.w/2, oy=CV.h/2;// 描画変換の中心オフセット（CSSpx基準）
     const oldMx=touch.lastMid.x-rect.left, oldMy=touch.lastMid.y-rect.top;
