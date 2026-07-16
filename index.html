@@ -940,15 +940,15 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
     <details class="help-credit" style="margin-top:16px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
       <summary style="cursor:pointer;font-weight:600;font-size:12px;padding:10px 12px;background:rgba(255,255,255,0.04);user-select:none">ⓘ クレジット・お問い合わせ</summary>
       <div style="font-size:12px;line-height:1.75;padding:12px 14px;color:var(--text)">
-        開発者：川嶋 克基（金沢大学附属病院 ME機器管理センター）<br>
-        Version 1.1.0<br>
-        © 2026 川嶋 克基<br>
+        開発者：川嶋 克典（○○病院 臨床工学科）<br>
+        Version 1.0.0<br>
+        © 2026 川嶋 克典<br>
         ライセンス：CC BY-NC 4.0<br>
         <br>
         学会発表：「hinotoriロールインシミュレーターの開発」<br>
-        第19回 日本ロボット外科学会学術集会（2027年2月）<br>
+        第○回 日本ロボット外科学会学術集会（2026年2月）<br>
         <br>
-        お問い合わせ：<span style="color:var(--accent)">kawashimakatsuki.ce@gmail.com</span><br>
+        お問い合わせ：<span style="color:var(--accent)">xxxxxxxx@xxxxxx.jp</span><br>
         <br>
         <span style="color:var(--muted);font-size:11px">本シミュレーターは教育・イメージ共有を目的としたツールです。実際の手術における判断は必ず実機および施設のプロトコルに従ってください。本ツールの使用により生じたいかなる損害についても開発者は責任を負いません。</span>
       </div>
@@ -1006,6 +1006,7 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
     </div>
     <div class="btn-row" style="margin-bottom:8px">
       <button class="btn btn-acc btn-sm" onclick="openScanModal()">📷 QRを読み取り</button>
+      <button class="btn btn-sm" onclick="saveShareQR()">🖼 QR保存</button>
       <button class="btn btn-sm" onclick="showShareQR()">🔄 QR再生成</button>
     </div>
     <div id="share-msg" style="font-size:10px;color:var(--muted);margin-bottom:8px;min-height:14px"></div>
@@ -4484,6 +4485,43 @@ function showShareQR(){
   sc.onload=function(){_qrLibLoading=false;draw();};
   sc.onerror=function(){_qrLibLoading=false;if(msg)msg.textContent='⚠ オフラインのためQR生成できません。JSON保存をご利用ください';};
   document.head.appendChild(sc);
+}
+
+// QR画像をPNGで保存（ファイル名はプリセット名から。QRは輪郭が重要なのでPNG＝可逆で保存）
+function saveShareQR(){
+  var msg=$('share-msg');
+  var run=function(){
+    try{
+      var url=buildShareURL();
+      var qr=qrcode(0,'M'); qr.addData(url); qr.make();
+      // 印刷・スキャンしやすい高解像度でcanvasへ描画（余白4モジュール）
+      var n=qr.getModuleCount(), cell=8, pad=4;
+      var size=(n+pad*2)*cell;
+      var cv=document.createElement('canvas'); cv.width=size; cv.height=size;
+      var g=cv.getContext('2d');
+      g.fillStyle='#ffffff'; g.fillRect(0,0,size,size);
+      g.fillStyle='#000000';
+      for(var r=0;r<n;r++){ for(var c=0;c<n;c++){ if(qr.isDark(r,c)) g.fillRect((c+pad)*cell,(r+pad)*cell,cell,cell); } }
+      // ファイル名はプリセット名から（Windows禁止文字は _ に置換）
+      var nm=((_shareData().presetName)||'').replace(/[\\/:*?"<>|]/g,'_').trim();
+      var fname='hinotori_QR_'+(nm?nm+'_':'')+new Date().toISOString().slice(0,10);
+      var p = (typeof savePNG==='function') ? savePNG(cv, fname) : null;
+      if(p && p.then){ p.then(function(ok){ if(msg)msg.textContent = ok?'✅ QR画像を保存しました':'保存をキャンセルしました'; }); return; }
+      cv.toBlob(function(blob){
+        var a=document.createElement('a'); a.download=fname+'.png';
+        a.href=URL.createObjectURL(blob); a.click();
+        setTimeout(function(){URL.revokeObjectURL(a.href);},5000);
+        if(msg)msg.textContent='✅ QR画像を保存しました';
+      },'image/png');
+    }catch(e){ if(msg)msg.textContent='⚠ QRを保存できませんでした（データ量が多い可能性があります）'; }
+  };
+  if(typeof qrcode!=='undefined'){ run(); return; }
+  if(msg)msg.textContent='QRライブラリを読み込み中…';
+  var s2=document.createElement('script');
+  s2.src='https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
+  s2.onload=run;
+  s2.onerror=function(){ if(msg)msg.textContent='⚠ オフラインのためQRを生成できません'; };
+  document.head.appendChild(s2);
 }
 
 // ====== QR読み取り（カメラ / 画像） ======
