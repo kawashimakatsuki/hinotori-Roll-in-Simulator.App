@@ -368,7 +368,6 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
     <button class="btn" onclick="resetToInitial()" title="デフォルトに戻す" style="border-color:#f97316;color:#f97316;">🔄 デフォルト</button>
     <button class="btn" onclick="saveAsInitial()" title="現在の設定をデフォルトとして保存" style="border-color:#a78bfa;color:#a78bfa;">💾 デフォルト保存</button>
     <button class="btn" onclick="resetView()" title="表示位置・ズームを初期状態に戻す">🎯 ビューリセット</button>
-    <button class="btn" onclick="alignOU()" title="OUをカメラポートに自動整列">⚡ 自動整列</button>
     <button class="btn" onclick="animateRollIn()" title="OUを現在位置までロールインさせるアニメーションを再生">▶ ロールイン再生</button>
     <button class="btn" id="measure-btn" onclick="toggleMeasure()" title="2点間距離を計測">📏 距離計測</button>
     <button class="btn" id="add-port-btn" onclick="toggleAddPortMode()" title="追加ポートを配置">📍 ポート追加</button>
@@ -782,7 +781,7 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
         <div class="f" style="padding-left:18px"><label><input type="checkbox" id="show-camport-label" checked onchange="render()"> ┗ CAM PORT ラベル</label></div>
         <div class="f" style="padding-left:18px"><label><input type="checkbox" id="show-cam-label" checked onchange="render()"> ┗ ポジショニングカメラ（P-CAM）ラベル</label></div>
         <div class="f"><label><input type="checkbox" id="show-rollin" checked onchange="render()"> ロールイン角・OU回転軸表示</label></div>
-        <div class="f"><label><input type="checkbox" id="show-tilt-axis" checked onchange="render()"> 傾斜：回転軸を表示</label></div>
+        <div class="f"><label><input type="checkbox" id="show-tilt-axis" onchange="render()"> 傾斜：回転軸を表示</label></div>
         <div class="f"><label><input type="checkbox" id="show-tilt-offset" onchange="render()"> 傾斜：補正移動距離を表示</label></div>
         <div class="f"><label><input type="checkbox" id="show-port-label" onchange="render()"> 追加ポート名を表示</label></div>
         <div class="f"><label><input type="checkbox" id="show-port-dist" onchange="render()"> ポート間距離を表示 (cm)</label></div>
@@ -926,7 +925,6 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
       <tr><td>アームベース</td><td>↺ ↻でアームベースを旋回</td></tr>
       <tr><td>🫣 ／ ✕（左下）</td><td>🫣＝スクショ用にUIを隠す ／ ✕＝操作UIの表示・非表示</td></tr>
       <tr><th colspan="2" style="padding-top:10px">⚡ ヘッダーボタン</th></tr>
-      <tr><td>⚡ 自動整列</td><td>カメラがポートに重なるようOUを自動移動</td></tr>
       <tr><td>🎯 ビューリセット</td><td>表示位置・ズームを初期状態に戻す</td></tr>
       <tr><td>🔄 デフォルト</td><td>全項目をデフォルト値に戻す</td></tr>
       <tr><td>↩ Undo</td><td>直前の操作を取り消す</td></tr>
@@ -940,15 +938,15 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
     <details class="help-credit" style="margin-top:16px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
       <summary style="cursor:pointer;font-weight:600;font-size:12px;padding:10px 12px;background:rgba(255,255,255,0.04);user-select:none">ⓘ クレジット・お問い合わせ</summary>
       <div style="font-size:12px;line-height:1.75;padding:12px 14px;color:var(--text)">
-        開発者：川嶋 克基（金沢大学附属病院 ME機器管理センター）<br>
-        Version 1.1.0<br>
-        © 2026 川嶋 克基<br>
+        開発者：川嶋 克典（○○病院 臨床工学科）<br>
+        Version 1.0.0<br>
+        © 2026 川嶋 克典<br>
         ライセンス：CC BY-NC 4.0<br>
         <br>
         学会発表：「hinotoriロールインシミュレーターの開発」<br>
-        第19回 日本ロボット外科学会学術集会（2027年2月）<br>
+        第○回 日本ロボット外科学会学術集会（2026年2月）<br>
         <br>
-        お問い合わせ：<span style="color:var(--accent)">kawashimakatsuki.ce@gmail.com</span><br>
+        お問い合わせ：<span style="color:var(--accent)">xxxxxxxx@xxxxxx.jp</span><br>
         <br>
         <span style="color:var(--muted);font-size:11px">本シミュレーターは教育・イメージ共有を目的としたツールです。実際の手術における判断は必ず実機および施設のプロトコルに従ってください。本ツールの使用により生じたいかなる損害についても開発者は責任を負いません。</span>
       </div>
@@ -997,6 +995,9 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
     <h3>💾 レイアウトの保存・共有</h3>
     <label style="display:flex;align-items:center;gap:6px;font-size:11px;margin-bottom:8px;cursor:pointer">
       <input type="checkbox" id="share-incl-paint" onchange="showShareQR()">ペイント描画を含める
+    </label>
+    <label style="display:flex;align-items:center;gap:6px;font-size:11px;margin-bottom:8px;cursor:pointer">
+      <input type="checkbox" id="share-incl-rollin" checked onchange="showShareQR()">ロールイン記録を含める（JSON保存時）
     </label>
     <div style="font-size:10px;color:var(--muted);margin-bottom:6px">📱 対面共有：QRを<b>相手の標準カメラ</b>で読む（アプリをWeb公開時）／または<b>アプリの「📷 QRを読み取り」</b>で読む、どちらでもレイアウトが開きます</div>
     <div id="share-qr" style="display:flex;justify-content:center;margin-bottom:6px;background:#fff;border-radius:8px;padding:0;min-height:20px"></div>
@@ -1179,7 +1180,16 @@ function renderPortList(){
 function updateExtraPort(id, field, value){
   const p = extraPorts.find(q=>q.id===id);
   if(!p) return;
-  if(field==='label') p.label = value;
+  if(field==='label'){
+    p.label = value;
+    // ポート列（起点/終点）の選択肢にも名前変更を反映（リスト全体は再描画せずフォーカス維持）
+    const pl = $('port-list');
+    if(pl){
+      pl.querySelectorAll('select option[value="'+id+'"]').forEach(function(o){
+        o.textContent = value || ('ポート'+id);
+      });
+    }
+  }
   else if(field==='color') p.color = value;
   else if(field==='noDist') p.noDist = !!value;   // 距離計算から除外
   else p[field] = parseFloat(value)||0;   // x, y, size
@@ -2201,7 +2211,8 @@ function render(){
   const cam=getCam(),port=getPort(),portRaw=getPort(false);
   const tType=$('tilt-type').value;
   if(tType!=='none'&&gv('tilt-ang')>0&&gc('show-tilt-offset'))drawTiltLine(portRaw,port,dark);
-  if(gc('show-tilt-axis'))drawTiltAxis(dark);
+  // 回転軸：チェックONの時、または「傾斜補正」セクションを開いて操作中の時だけ表示
+  if(gc('show-tilt-axis') || _tiltSectionOpen())drawTiltAxis(dark);
   drawTolCircle(port,dark);
   drawPortMarker(port,portRaw,dark);
   drawExtraPorts(dark);
@@ -3375,6 +3386,15 @@ function isInTable(wx,wy){
 function toggleSec(hd){
   hd.classList.toggle('open');
   hd.nextElementSibling.classList.toggle('open');
+  render();   // 「傾斜補正」の開閉で回転軸の表示が切り替わるため再描画
+}
+// 「傾斜補正」セクションが開いている＝操作中とみなす
+function _tiltSectionOpen(){
+  var hds=document.querySelectorAll('.sec-hd');
+  for(var i=0;i<hds.length;i++){
+    if(hds[i].textContent.indexOf('傾斜補正')>=0) return hds[i].classList.contains('open');
+  }
+  return false;
 }
 function syncNum(rangeId,numId){$(numId).value=parseFloat($(rangeId).value).toFixed(1);}
 function syncRange(numId,rangeId){
@@ -3548,16 +3568,6 @@ function updateZoomBadge(){
 }
 
 
-function alignOU(){
-  const port=getPort();
-  const sw=d2r(gv('arm-sw')),ouA=d2r(gv('ou-ang'));
-  const bx=gv('arm-x'),by=gv('arm-y')+gv('ou-piv'),cx=gv('cam-x'),cy=gv('cam-y');
-  const co=rot(cx,cy,sw);
-  const loc=rot(bx+co.x,by+co.y,ouA);
-  $('ou-x').value=(port.x-loc.x).toFixed(1);
-  $('ou-y').value=(port.y-loc.y).toFixed(1);
-  render();
-}
 
 // ===== 数値入力のイージングアニメーション（ease-in-out） =====
 // items: [{id, from, to}] / onFrame省略時は毎フレーム render()
@@ -4418,6 +4428,8 @@ function _shareData(){
   const data=getPresetData();
   const inc=$('share-incl-paint')&&$('share-incl-paint').checked;
   if(!inc) delete data.paintStrokes;
+  const incR=$('share-incl-rollin')&&$('share-incl-rollin').checked;
+  if(!incR) delete data.rollinFrames;
   // レイアウト名を同梱（読込先でプリセット名として自動入力される）
   const nm=($('pr-name')&&$('pr-name').value.trim())||currentLayoutName;
   if(nm) data.presetName=nm;
@@ -4453,14 +4465,24 @@ function openShareModal(){
   $('share-modal').classList.add('show'); showShareQR();
 }
 function closeShareModal(){$('share-modal').classList.remove('show');}
+// QRが容量超過した時、何がデータを大きくしているかを示す
+function _qrSizeHint(){
+  try{
+    var d=_shareData(), parts=[];
+    if(d.paintStrokes && d.paintStrokes.length) parts.push('ペイント描画');
+    if(d.customObjs && d.customObjs.length) parts.push('配置オブジェクト'+d.customObjs.length+'個');
+    if(d.extraPorts && d.extraPorts.length) parts.push('追加ポート'+d.extraPorts.length+'個');
+    return parts.length ? '主な要因: '+parts.join('・')+'。これらを減らすと収まる場合があります。' : '';
+  }catch(e){ return ''; }
+}
 // QRコード生成（URLは表示せずQRのみ。読み取り側は起動時の #s= 復元で同じレイアウトを開く）
 let _qrLibLoading=false;
 function showShareQR(){
   const box=$('share-qr'),msg=$('share-msg');
   if(!box)return;
   const draw=function(){
+    var url=''; try{ url=buildShareURL(); }catch(e0){}
     try{
-      const url=buildShareURL();
       const qr=qrcode(0,'M');qr.addData(url);qr.make();
       box.innerHTML=qr.createImgTag(4,8);
       // QR画像を枠内に収める（固定幅＋はみ出し防止）
@@ -4468,12 +4490,13 @@ function showShareQR(){
       if(im){ im.removeAttribute('width'); im.removeAttribute('height'); im.style.cssText='width:220px;max-width:100%;height:auto;image-rendering:pixelated;display:block;margin:0 auto;'; }
       box.style.padding='8px';
       var localOnly=/^file:/i.test(url)||/^https?:\/\/(localhost|127\.0\.0\.1|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/i.test(url);
-      var recNote=(typeof rollinRec!=='undefined'&&rollinRec.frames&&rollinRec.frames.length>=2)?'　※ロールイン記録はQRに含まれません（記録も渡すにはJSON保存を）':'';
+      var _incR=$('share-incl-rollin')&&$('share-incl-rollin').checked;
+      var recNote=(_incR && typeof rollinRec!=='undefined'&&rollinRec.frames&&rollinRec.frames.length>=2)?'　※ロールイン記録はQRに含まれません（記録はJSON保存で渡せます）':'';
       if(msg) msg.textContent = (url.length>2200 ? '⚠ データ量が多く読み取りにくい場合があります（JSON保存をご利用ください）'
         : (localOnly ? '⚠ 標準カメラで読むには、下の「公開URL」にWeb公開したアプリのアドレスを設定してください（アプリの📷読み取りは今のままでも可）' : '📷 標準カメラ／アプリの📷読み取り どちらでも読めます')) + recNote;
     }catch(e){
       box.innerHTML='';box.style.padding='0';
-      if(msg)msg.textContent='⚠ データ量が多くQR化できません。JSON保存をご利用ください';
+      if(msg)msg.textContent='⚠ データ量が多くQR化できません（約'+url.length+'文字／QRの上限は約2300文字）。'+_qrSizeHint()+'JSON保存なら容量制限なく共有できます';
     }
   };
   if(typeof qrcode!=='undefined'){draw();return;}
@@ -6215,6 +6238,7 @@ function resetToInitial(){
   var _sab=document.getElementById('show-armbase-label'); if(_sab) _sab.checked = false;
   var _spl=document.getElementById('show-port-label'); if(_spl) _spl.checked = false;
   var _spd=document.getElementById('show-port-dist'); if(_spd) _spd.checked = false;
+  var _sta=document.getElementById('show-tilt-axis'); if(_sta) _sta.checked = false;
   // 手術台
   s('tbl-w',  560);
   s('tbl-d', 1800);
