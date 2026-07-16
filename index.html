@@ -940,15 +940,15 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
     <details class="help-credit" style="margin-top:16px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
       <summary style="cursor:pointer;font-weight:600;font-size:12px;padding:10px 12px;background:rgba(255,255,255,0.04);user-select:none">ⓘ クレジット・お問い合わせ</summary>
       <div style="font-size:12px;line-height:1.75;padding:12px 14px;color:var(--text)">
-        開発者：川嶋 克基（金沢大学附属病院 ME機器管理センター）<br>
-        Version 1.1.0<br>
-        © 2026 川嶋 克基<br>
+        開発者：川嶋 克典（○○病院 臨床工学科）<br>
+        Version 1.0.0<br>
+        © 2026 川嶋 克典<br>
         ライセンス：CC BY-NC 4.0<br>
         <br>
         学会発表：「hinotoriロールインシミュレーターの開発」<br>
-        第19回 日本ロボット外科学会学術集会（2027年2月）<br>
+        第○回 日本ロボット外科学会学術集会（2026年2月）<br>
         <br>
-        お問い合わせ：<span style="color:var(--accent)">kawashimakatsuki.ce@gmail.com</span><br>
+        お問い合わせ：<span style="color:var(--accent)">xxxxxxxx@xxxxxx.jp</span><br>
         <br>
         <span style="color:var(--muted);font-size:11px">本シミュレーターは教育・イメージ共有を目的としたツールです。実際の手術における判断は必ず実機および施設のプロトコルに従ってください。本ツールの使用により生じたいかなる損害についても開発者は責任を負いません。</span>
       </div>
@@ -4428,7 +4428,9 @@ function shareBaseURL(){
   return u || location.href.split('#')[0];
 }
 function buildShareURL(){
-  return shareBaseURL()+'#s='+_b64uEnc(JSON.stringify(_shareData()));
+  var data=_shareData();
+  if(data && data.rollinFrames) delete data.rollinFrames;   // QRは容量制限のためロールイン記録は除外（JSON保存では含む）
+  return shareBaseURL()+'#s='+_b64uEnc(JSON.stringify(data));
 }
 function onShareBaseInput(){
   var el=document.getElementById('share-base-url');
@@ -4465,8 +4467,9 @@ function showShareQR(){
       if(im){ im.removeAttribute('width'); im.removeAttribute('height'); im.style.cssText='width:220px;max-width:100%;height:auto;image-rendering:pixelated;display:block;margin:0 auto;'; }
       box.style.padding='8px';
       var localOnly=/^file:/i.test(url)||/^https?:\/\/(localhost|127\.0\.0\.1|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/i.test(url);
-      if(msg) msg.textContent = url.length>2200 ? '⚠ データ量が多く読み取りにくい場合があります（JSON保存をご利用ください）'
-        : (localOnly ? '⚠ 標準カメラで読むには、下の「公開URL」にWeb公開したアプリのアドレスを設定してください（アプリの📷読み取りは今のままでも可）' : '📷 標準カメラ／アプリの📷読み取り どちらでも読めます');
+      var recNote=(typeof rollinRec!=='undefined'&&rollinRec.frames&&rollinRec.frames.length>=2)?'　※ロールイン記録はQRに含まれません（記録も渡すにはJSON保存を）':'';
+      if(msg) msg.textContent = (url.length>2200 ? '⚠ データ量が多く読み取りにくい場合があります（JSON保存をご利用ください）'
+        : (localOnly ? '⚠ 標準カメラで読むには、下の「公開URL」にWeb公開したアプリのアドレスを設定してください（アプリの📷読み取りは今のままでも可）' : '📷 標準カメラ／アプリの📷読み取り どちらでも読めます')) + recNote;
     }catch(e){
       box.innerHTML='';box.style.padding='0';
       if(msg)msg.textContent='⚠ データ量が多くQR化できません。JSON保存をご利用ください';
