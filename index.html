@@ -37,6 +37,8 @@ header{background:var(--surf);border-bottom:1px solid var(--border);padding:0 16
 .hdr-btns{display:flex;gap:6px;flex-shrink:1;min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-ms-overflow-style:none;-webkit-overflow-scrolling:touch}
 .hdr-btns::-webkit-scrollbar{display:none}
 .hdr-btns>*{flex-shrink:0}
+.hdr-btns.dragging{cursor:grabbing}
+.hdr-btns.dragging *{cursor:grabbing!important;pointer-events:none}
 .main{display:flex;flex:1;overflow:hidden;position:relative}
 .sidebar{position:fixed;top:0;left:0;height:100%;z-index:99000;transform:translateX(-100%);width:min(290px,85vw);background:var(--surf);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;min-height:0;transition:transform .25s ease;padding-top:env(safe-area-inset-top)}
 .sidebar-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:200px}
@@ -55,8 +57,8 @@ header{background:var(--surf);border-bottom:1px solid var(--border);padding:0 16
 /* PC幅でもdrawer表示のため削除 */
 .drawer-toggle{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:6px;border:1px solid var(--border);background:var(--surf2);color:var(--text);font-size:20px;cursor:pointer;flex-shrink:0}
 .canvas-wrap{flex:1;position:relative;overflow:hidden;background:var(--bg);min-width:0;min-height:0;}
-canvas{display:block;cursor:grab}
 #c{touch-action:none;-ms-touch-action:none}  /* ブラウザ既定のピンチズーム/パンを無効化し、アプリ側のピンチ処理と干渉させない */
+canvas{display:block;cursor:grab}
 canvas.grab{cursor:grabbing}
 canvas.port-hover{cursor:move}
 canvas.measure{cursor:crosshair}
@@ -307,7 +309,7 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
 .used-colors{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;align-items:center}
 .used-colors .uc-label{font-size:9px;color:var(--muted);margin-right:2px}
 .used-colors .uc-swatch{width:20px;height:20px;border-radius:4px;border:1px solid rgba(255,255,255,0.3);cursor:pointer;padding:0;flex-shrink:0}
-.used-colors .uc-swatch:active{outline:2px solid var(--accent)}
+.used-colors .uc-swatch:hover,.used-colors .uc-swatch:active{outline:2px solid var(--accent)}   /* マウス(hover)・タッチ(active)の両対応 */
 .used-colors .uc-empty{font-size:9px;color:var(--muted)}
 
 
@@ -356,13 +358,9 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
 <header>
   <div class="logo">
     <div class="logo-icon" style="overflow:hidden;padding:0;"><img src="data:image/png;base64,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" style="width:100%;height:100%;object-fit:cover;border-radius:6px;" /></div>
-    <div>
-      <div class="logo-name">hinotori Roll-In Simulator</div>
-      <div class="logo-sub">Operation Unit Positioning</div>
-    </div>
+    <button class="drawer-toggle" onclick="toggleDrawer()" title="設定パネルを開く">☰</button>
   </div>
   <div class="hdr-btns">
-    <button class="drawer-toggle" onclick="toggleDrawer()" title="設定">☰</button>
     <button class="btn" id="undo-btn" onclick="undoState()" title="一個前の状態に戻す" disabled>↩ Undo</button>
     <button class="btn" id="redo-btn" onclick="redoState()" title="やり直す（Ctrl+Y）" disabled>↪ Redo</button>
     <button class="btn" onclick="resetToInitial()" title="デフォルトに戻す" style="border-color:#f97316;color:#f97316;">🔄 デフォルト</button>
@@ -372,6 +370,7 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
     <button class="btn" id="measure-btn" onclick="toggleMeasure()" title="2点間距離を計測">📏 距離計測</button>
     <button class="btn" id="add-port-btn" onclick="toggleAddPortMode()" title="追加ポートを配置">📍 ポート追加</button>
     <button class="btn" id="paint-btn" onclick="togglePaintMode()" title="ペイント">🖊 ペイント</button>
+    <button class="btn" onclick="openExportModal()" title="現在の画面をPNG画像として出力（保存先を選択可能）" style="border-color:#4ade80;color:#4ade80;">📷 PNG出力</button>
     <button class="btn" onclick="openShareModal()" title="現在のレイアウトをQRコード共有 / JSONファイルで保存・読込" style="border-color:#22d3ee;color:#22d3ee;">💾 保存・共有</button>
     <button class="btn" onclick="openHelpModal()" title="操作方法">❓ ヘルプ</button>
   </div>
@@ -910,43 +909,71 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
 <div class="modal-bg" id="help-modal">
   <div class="modal" style="width:420px;max-height:90vh;overflow-y:auto">
     <h3>❓ 操作ガイド</h3>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.6">
+      このアプリはPC・スマートフォン兼用です。<b>PCではマウス／キーボード</b>、<b>スマホ・タブレットではタッチ操作</b>が使えます（画面サイズに応じて操作UIが自動で切り替わります）。
+    </div>
     <table class="help-tbl">
       <tr><th colspan="2">⚙️ 設定パネル（サイドバー）</th></tr>
       <tr><td><b>☰ ボタン（左上）</b></td><td>設定パネルを開く／閉じる。手術台・患者・カメラポート・傾斜補正などの数値設定はここで行います</td></tr>
-      <tr><td>各セクションの見出し</td><td>タップで開閉</td></tr>
+      <tr><td>各セクションの見出し</td><td>クリック／タップで開閉</td></tr>
       <tr><td>🔄 ○○をリセット</td><td>各セクション末尾のボタンで、その項目だけ既定値に戻す</td></tr>
-      <tr><th colspan="2" style="padding-top:10px">👆 タッチ操作（画面上）</th></tr>
+      <tr><th colspan="2" style="padding-top:10px">🖱 マウス操作（PC）</th></tr>
+      <tr><td>左ドラッグ（空白）</td><td>視点をスクロール</td></tr>
+      <tr><td>左ドラッグ（OU上）</td><td>OU移動</td></tr>
+      <tr><td>左ドラッグ（台上）</td><td>手術台移動</td></tr>
+      <tr><td>ホイール</td><td>OU角度変更（1°/ステップ）</td></tr>
+      <tr><td>Shift+ホイール</td><td>OU角度変更（1°）</td></tr>
+      <tr><td>Alt+ホイール</td><td>OU角度変更（0.5°微調整）</td></tr>
+      <tr><td>Ctrl+ホイール</td><td>手術台回転（1°）</td></tr>
+      <tr><th colspan="2" style="padding-top:10px">👆 タッチ操作（スマホ・タブレット）</th></tr>
       <tr><td>1本指ドラッグ</td><td>左下のモードに応じて 視点スクロール / OU移動 / 台移動 / アーム移動</td></tr>
       <tr><td>2本指ピンチ</td><td>拡大・縮小（2本指を動かすと視点の移動も同時）</td></tr>
-      <tr><th colspan="2" style="padding-top:10px">🎛 モード切替（画面左下）</th></tr>
+      <tr><th colspan="2" style="padding-top:10px">🎛 モード切替（画面左下・タッチ時）</th></tr>
       <tr><td>🖐 スクロール</td><td>1本指ドラッグで視点を移動</td></tr>
       <tr><td>OU</td><td>方向パッドでOU移動・↺ ↻でOU回転（長押しで連続）</td></tr>
       <tr><td>🛏️ 手術台</td><td>方向パッドで台移動・↺ ↻で台回転（長押しで連続）</td></tr>
       <tr><td>アームベース</td><td>↺ ↻でアームベースを旋回</td></tr>
       <tr><td>🫣 ／ ✕（左下）</td><td>🫣＝スクショ用にUIを隠す ／ ✕＝操作UIの表示・非表示</td></tr>
+      <tr><th colspan="2" style="padding-top:10px">⌨️ キーボード操作（PC）</th></tr>
+      <tr><td><b>W / A / S / D</b></td><td>OU移動（押し続けで連続移動）</td></tr>
+      <tr><td><b>Q / E</b></td><td>OU回転（Shift=5° / Alt=0.5°微調整）</td></tr>
+      <tr><td><b>Z / C</b></td><td>手術台回転（Shift=5° / Alt=0.5°微調整）</td></tr>
+      <tr><td><b>R / F</b></td><td>アームベース回転（Shift=5° / Alt=0.1°微調整）</td></tr>
+      <tr><td><b>+ / ;</b></td><td>ズームイン（拡大）</td></tr>
+      <tr><td><b>-</b></td><td>ズームアウト（縮小）</td></tr>
+      <tr><td><b>↑ ↓ ← →</b></td><td>視点移動（パン）</td></tr>
+      <tr><td><b>Space</b></td><td>視点を中央にリセット</td></tr>
+      <tr><td><b>[ / ]</b></td><td>選択オブジェクト回転（Shift同時押しで10°刻み）</td></tr>
+      <tr><td><b>P</b></td><td>ロールイン記録の開始／停止（下バーに「● 記録中」が点滅表示）</td></tr>
       <tr><th colspan="2" style="padding-top:10px">⚡ ヘッダーボタン</th></tr>
       <tr><td>🎯 ビューリセット</td><td>表示位置・ズームを初期状態に戻す</td></tr>
       <tr><td>🔄 デフォルト</td><td>全項目をデフォルト値に戻す</td></tr>
-      <tr><td>↩ Undo</td><td>直前の操作を取り消す</td></tr>
-      <tr><td>📏 距離計測</td><td>ONにして2点タップで距離表示。📏ピンモードで微調整可</td></tr>
-      <tr><td>📍 ポート追加</td><td>ONにしてタップでポート配置</td></tr>
+      <tr><td>↩ Undo</td><td>直前の操作を取り消す（Ctrl+Z）</td></tr>
+      <tr><td>📏 距離計測</td><td>ONにして2点クリック／タップで距離表示（タッチ時は📏ピンモードで微調整可）</td></tr>
+      <tr><td>📍 ポート追加</td><td>ONにしてクリック／タップでポート配置</td></tr>
       <tr><td>🖊 ペイント</td><td>書き込みモード</td></tr>
+      <tr><td>📷 PNG出力</td><td>現在の画面を画像として保存（保存先を選択可能）</td></tr>
+      <tr><td>💾 保存・共有</td><td>QRコードで対面共有／JSONファイルで保存・読込</td></tr>
+      <tr><th colspan="2" style="padding-top:10px">▶ ロールイン再生（操作を録画して再生）</th></tr>
+      <tr><td><b>⏺ 記録開始</b>（または <b>P</b> キー）</td><td>押すと記録を開始。以後のOU移動・角度・アーム旋回の操作が記録されます。記録中は下バーに「● 記録中」が点滅表示</td></tr>
+      <tr><td><b>⏹ 記録停止</b>（または <b>P</b> キー）</td><td>もう一度押すと記録を停止</td></tr>
+      <tr><td>▶ 再生</td><td>記録した操作を、実際の順番どおりに再生（再生時間は秒数で調整）</td></tr>
       <tr><th colspan="2" style="padding-top:10px">🛏️ 手術台プリセット</th></tr>
-      <tr><td>プリセットボタン</td><td>タップで手術台の寸法を適用</td></tr>
+      <tr><td>プリセットボタン</td><td>クリック／タップで手術台の寸法を適用</td></tr>
     </table>
 
     <details class="help-credit" style="margin-top:16px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
       <summary style="cursor:pointer;font-weight:600;font-size:12px;padding:10px 12px;background:rgba(255,255,255,0.04);user-select:none">ⓘ クレジット・お問い合わせ</summary>
       <div style="font-size:12px;line-height:1.75;padding:12px 14px;color:var(--text)">
-        開発者：川嶋 克基（金沢大学附属病院 ME機器管理センター）<br>
-        Version 1.1.1<br>
-        © 2026 川嶋 克基<br>
+        開発者：川嶋 克（金沢附属病院 ME機器管理センター）<br>
+        Version 1.0.0<br>
+        © 2026 川嶋 克<br>
         ライセンス：CC BY-NC 4.0<br>
         <br>
         学会発表：「hinotoriロールインシミュレーターの開発」<br>
         第19回 日本ロボット外科学会学術集会（2027年2月）<br>
         <br>
-        お問い合わせ：<span style="color:var(--accent)">kawashimakatsuki.ce@gmail.com</span><br>
+        お問い合わせ：<span style="color:var(--accent)">kawashima.ce@gmail.com</span><br>
         <br>
         <span style="color:var(--muted);font-size:11px">本シミュレーターは教育・イメージ共有を目的としたツールです。実際の手術における判断は必ず実機および施設のプロトコルに従ってください。本ツールの使用により生じたいかなる損害についても開発者は責任を負いません。</span>
       </div>
@@ -957,6 +984,9 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
     </div>
   </div>
 </div>
+
+<!-- 右クリックコンテキストメニュー -->
+<div id="ctx-menu" style="position:fixed;display:none;background:rgba(10,10,18,0.96);border:1px solid #3a3a5c;border-radius:8px;padding:4px 0;z-index:9999;min-width:160px;box-shadow:0 4px 20px rgba(0,0,0,0.6);pointer-events:auto;"></div>
 
 <!-- 手術台プリセット保存モーダル -->
 <div class="modal-bg" id="tbl-preset-modal">
@@ -1037,6 +1067,27 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
     </div>
     <div class="btn-row" style="margin-top:10px">
       <button class="btn btn-acc" onclick="closeScanModal()">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="export-modal">
+  <div class="modal" style="width:340px;max-width:92vw">
+    <h3>📷 PNG画像を出力</h3>
+    <div class="f" style="margin-bottom:10px">
+      <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">ファイル名</label>
+      <div style="display:flex;align-items:center;gap:4px">
+        <input type="text" id="exp-name" value="hinotori_rollin" style="flex:1;font-size:12px" onkeydown="if(event.key==='Enter')doExport()">
+        <span style="font-size:11px;color:var(--muted)">.png</span>
+      </div>
+    </div>
+    <label style="display:flex;align-items:center;gap:6px;font-size:11px;margin-bottom:10px;cursor:pointer">
+      <input type="checkbox" id="exp-info" checked>設定情報を欄外に付けて出力
+    </label>
+    <div id="exp-loc-hint" style="font-size:10px;color:var(--muted);margin-bottom:10px;min-height:14px"></div>
+    <div class="btn-row" style="margin-top:8px">
+      <button class="btn btn-acc btn-sm" onclick="doExport()">⬇ 出力</button>
+      <button class="btn btn-sm" onclick="closeExportModal()">キャンセル</button>
     </div>
   </div>
 </div>
@@ -1122,6 +1173,8 @@ let portLineStart = null; // 角度計測：起点ポートID
 let portLineEnd   = null; // 角度計測：終点ポートID
 let dragPortId  = null; // ドラッグ中のポートID
 let hoverPortId = null; // ホバー中のポートID
+let hoverOU    = false; // OUホバー中
+let hoverTable = false; // 手術台ホバー中
 
 function toggleAddPortMode(){
   addPortMode = !addPortMode;
@@ -1510,7 +1563,9 @@ document.addEventListener('keydown', e=>{
   if(key==='H') heldH = true;
 
   // OU回転: Q/E
-  const rotStep = e.shiftKey ? 5 : 1;
+  // 微調整: Alt押下で OU/手術台=0.5°、アームベース=0.1°（Shift=5°）
+  const rotStep = e.shiftKey ? 5 : (e.altKey ? 0.5 : 1);
+  const armStep = e.shiftKey ? 5 : (e.altKey ? 0.1 : 1);
   if(key==='Q'||key==='E'){
     e.preventDefault();
     const oa=$('ou-ang'), oan=$('ou-ang-num');
@@ -1536,7 +1591,7 @@ document.addEventListener('keydown', e=>{
     if(heldH){ activateWings(); showFanfare(); return; }
     const aw=$('arm-sw'), awn=$('arm-sw-num');
     if(aw){
-      const v=Math.max(-180,Math.min(180,parseFloat(aw.value||0)+(key==='R'?rotStep:-rotStep)));
+      const v=Math.max(-180,Math.min(180,parseFloat(aw.value||0)+(key==='R'?armStep:-armStep)));
       aw.value=v.toFixed(1); if(awn)awn.value=aw.value;
       if(typeof onArmSwivel==='function') onArmSwivel();
     }
@@ -1550,13 +1605,24 @@ document.addEventListener('keydown', e=>{
       if(co){ co.ang=((co.ang||0)+inc+720)%360; render(); }
     }
   }
-  // ズーム: ;(拡大) / -(縮小)
-  if(e.key===';'||e.code==='Semicolon'){ e.preventDefault(); zoomStep(1.2); }
+  // ズーム: +(拡大) / -(縮小) ※;も拡大として残す
+  if(e.key==='+'||e.key===';'||e.code==='Semicolon'){ e.preventDefault(); zoomStep(1.2); }
   if(e.key==='-'||e.code==='Minus'){ e.preventDefault(); zoomStep(0.8); }
   // ロールイン記録の開始/停止: P
   if(key==='P' && !e.ctrlKey && !e.metaKey){ e.preventDefault(); if(typeof toggleRollinRec==='function') toggleRollinRec(); }
   // 視点リセット: Space
   if(e.key===' '){ e.preventDefault(); VIEW.px=0; VIEW.py=0; render(); }
+  // WASD: OUの移動（押し続け対応）
+  if(key==='W'||key==='A'||key==='S'||key==='D'){
+    e.preventDefault();
+    keysDown.add(key);
+    if(!kbdInterval){ kbdInterval = setInterval(applyKbdMove, 30); }
+  }
+  // 矢印キー: 視点移動（キーボードのみでパン操作）
+  if(e.key==='ArrowUp'){ e.preventDefault(); VIEW.py += 20; render(); }
+  if(e.key==='ArrowDown'){ e.preventDefault(); VIEW.py -= 20; render(); }
+  if(e.key==='ArrowLeft'){ e.preventDefault(); VIEW.px -= 20; render(); }
+  if(e.key==='ArrowRight'){ e.preventDefault(); VIEW.px += 20; render(); }
 });
 document.addEventListener('keyup', e=>{
   const key = e.key.toUpperCase();
@@ -1620,7 +1686,7 @@ function getCam(){
 
 // 傾斜補正：回転軸からの符号付き距離(Lx,Ly)と高さHによる剛体回転の平面移動量(テーブルローカルmm)
 // 回転軸の直上にポートが無い場合も考慮。Ly=頭足方向距離, Lx=左右方向距離（傾斜前）
-// 傾斜表現の強さ（0〜1）。低いほど伸縮・ポート移動を緩く表示
+// 傾斜表現の強さ（0〜1）。100%=従来の剛体回転、低いほど伸縮・ポート移動を緩く表示
 function tiltStrength(){
   const e=document.getElementById('tilt-strength');
   return (e && e.value!=='') ? ((parseFloat(e.value)||0)/100) : 1;
@@ -2214,6 +2280,7 @@ function render(){
   // 回転軸：チェックONの時、または「傾斜補正」セクションを開いて操作中の時だけ表示
   if(gc('show-tilt-axis') || _tiltSectionOpen())drawTiltAxis(dark);
   drawTolCircle(port,dark);
+  // CAM PORT は最前面に描画（OU・アームベースと重なっても見えるように）
   drawPortMarker(port,portRaw,dark);
   drawExtraPorts(dark);
   drawRollinAngle(dark);
@@ -2529,6 +2596,7 @@ function drawOU(dark){
   const camX=gv('cam-x'),camY=gv('cam-y');
   const pivW=w2c(gv('ou-x'),gv('ou-y'));
   const isSel=sel==='ou';
+  const isHoverOU=hoverOU&&!isSel;
   const sc=VIEW.sc;
 
   ctx.save();
@@ -2548,6 +2616,8 @@ function drawOU(dark){
   // 外周
   ctx.beginPath();ctx.roundRect(bx,by,bw,bh,cr);
   ctx.strokeStyle=isSel?'#facc15':'#000';ctx.lineWidth=2;ctx.stroke();
+  // ホバーハイライト
+  if(isHoverOU){ctx.save();ctx.beginPath();ctx.roundRect(bx-4,by-4,bw+8,bh+8,cr+4);ctx.strokeStyle='rgba(99,179,237,0.75)';ctx.lineWidth=3;ctx.setLineDash([6,4]);ctx.stroke();ctx.restore();}
   // 前端アクセント（青の太線）
   ctx.beginPath();ctx.moveTo(bx+cr,by);ctx.lineTo(bx+bw-cr,by);
   ctx.lineCap='round';ctx.strokeStyle=dark?'#1e293b':'#475569';ctx.lineWidth=Math.max(3,bh*0.012);ctx.stroke();ctx.lineCap='butt';
@@ -2649,7 +2719,7 @@ function drawOU(dark){
       ctx.beginPath();ctx.moveTo(_root,_ay);ctx.lineTo(_tipx,_ay);
       ctx.strokeStyle=dark?'rgba(229,233,244,0.97)':'rgba(233,237,245,0.98)';
       ctx.lineWidth=_aw;ctx.stroke();
-      // 器具先端（枠線付き）
+      // 器具先端（白・枠線付き）
       ctx.beginPath();ctx.arc(_tipx,_ay,_tr,0,Math.PI*2);
       ctx.fillStyle=dark?'rgba(229,233,244,0.97)':'#ffffff';ctx.fill();
       ctx.strokeStyle=_olc;ctx.lineWidth=2;ctx.stroke();
@@ -2711,7 +2781,7 @@ function drawOU(dark){
   ctx.beginPath();ctx.arc(clx,cly,10,0,Math.PI*2);
   ctx.fillStyle='#00d4ff';ctx.fill();
   ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
-  // 中央が分かりやすいように十字のマーカー（白の実線）。最前面、円より少し外側まで伸ばす
+  // 中央が分かりやすいように十字マーカー（白の実線・最前面、円より少し外側まで伸ばす）
   const _camCross=14;
   ctx.save();
   ctx.setLineDash([]);ctx.lineCap='butt';
@@ -2762,6 +2832,7 @@ function applyTiltForeshorten(){
 function drawTable(dark){
   const w=gv('tbl-w'),d=gv('tbl-d'),tA=d2r(gv('tbl-ang'));
   const isSel=sel==='table';
+  const isHoverTable=hoverTable&&!isSel;
   const tc=w2c(gv('tbl-x'),gv('tbl-y'));
   ctx.save();ctx.translate(tc.x,tc.y);
   ctx.rotate(-tA);
@@ -2778,6 +2849,7 @@ function drawTable(dark){
     ctx.strokeStyle='rgba(250,204,21,0.25)';ctx.lineWidth=8;
     ctx.beginPath();ctx.roundRect(tx-4,ty-4,tw+8,tdh+8,cr+4);ctx.stroke();
   }
+  if(isHoverTable){ctx.save();ctx.beginPath();ctx.roundRect(tx-4,ty-4,tw+8,tdh+8,cr+4);ctx.strokeStyle='rgba(99,179,237,0.75)';ctx.lineWidth=3;ctx.setLineDash([6,4]);ctx.stroke();ctx.restore();}
   ctx.restore();
 }
 
@@ -2850,7 +2922,7 @@ function drawPatient(dark){
   ctx.translate(_ppx, -_ppy);
   var GOWN=dark?'#9db1cb':'#c4d4e8', SKIN=GOWN, OUT='#3a4452';   // 頭も体と同じ薄い青
   ctx.lineJoin='round'; ctx.lineCap='round';
-  function limb(){
+  function limb(){ // (x1,y1, x2,y2[, x3,y3], wd)
     var a=arguments, wd=a[a.length-1];
     ctx.beginPath(); ctx.moveTo(a[0],a[1]);
     for(var i=2;i<a.length-1;i+=2) ctx.lineTo(a[i],a[i+1]);
@@ -2870,15 +2942,15 @@ function drawPatient(dark){
     ctx.fillStyle=GOWN;ctx.fill();ctx.strokeStyle=OUT;ctx.lineWidth=2;ctx.stroke();
   }
   var top=-H/2, headR=H*0.058, aW=H*0.045*BW, lW=H*0.062*BW;
-  // 手術台幅でクランプ（脚などが台の外に出ないように）
-  var _xlim=gv('tbl-w')*VIEW.sc*0.46;
-  function cl(x){ return Math.max(-_xlim, Math.min(_xlim, x)); }
+  // 脚先などが手術台の外に出ないよう、脚の太さ込みで台内に収める上限
+  var _legLim = Math.max(H*0.10, gv('tbl-w')*VIEW.sc*0.5 - lW*0.5 - 4);
+  function cl(x){ return Math.max(-_legLim, Math.min(_legLim, x)); }
   if(pose==='supine'||pose==='prone'){
     var shY=top+0.17*H, hipY=top+0.50*H, shW=0.13*H, hipW=0.10*H;
     if(pose==='supine'){
-      limb(-shW*0.85,shY+H*0.02,cl(-shW*1.05),hipY-H*0.02,aW);
-      limb( shW*0.85,shY+H*0.02,cl( shW*1.05),hipY-H*0.02,aW);
-    } else {
+      limb(-shW*0.85,shY+H*0.02,-shW*1.05,hipY-H*0.02,aW);
+      limb( shW*0.85,shY+H*0.02, shW*1.05,hipY-H*0.02,aW);
+    } else { // 伏臥位：腕を頭の横に上げる
       limb(-shW*0.7,shY,-headR*1.6,top+H*0.05,aW);
       limb( shW*0.7,shY, headR*1.6,top+H*0.05,aW);
     }
@@ -2888,16 +2960,16 @@ function drawPatient(dark){
     ell(0,top+headR,headR*0.82+0.25,headR+0.25,SKIN);
   } else if(pose==='legs-open'){
     var shY=top+0.17*H, hipY=top+0.50*H, shW=0.13*H, hipW=0.10*H;
-    limb(-shW*0.85,shY+H*0.02,cl(-shW*1.05),hipY-H*0.02,aW);
-    limb( shW*0.85,shY+H*0.02,cl( shW*1.05),hipY-H*0.02,aW);
-    limb(-hipW*0.5,hipY-H*0.02,cl(-hipW*1.9),top+0.985*H,lW);
+    limb(-shW*0.85,shY+H*0.02,-shW*1.05,hipY-H*0.02,aW);
+    limb( shW*0.85,shY+H*0.02, shW*1.05,hipY-H*0.02,aW);
+    limb(-hipW*0.5,hipY-H*0.02,cl(-hipW*1.9),top+0.985*H,lW);   // 開脚（直脚をV字に・台内）
     limb( hipW*0.5,hipY-H*0.02,cl( hipW*1.9),top+0.985*H,lW);
     torso(shW,hipW,shY,hipY);
     ell(0,top+headR,headR*0.82+0.25,headR+0.25,SKIN);
   } else if(pose==='lithotomy'){
     var shY=top+0.17*H, hipY=top+0.47*H, shW=0.13*H, hipW=0.10*H;
-    limb(-shW*0.85,shY+H*0.02,cl(-shW*1.05),hipY,aW);
-    limb( shW*0.85,shY+H*0.02,cl( shW*1.05),hipY,aW);
+    limb(-shW*0.85,shY+H*0.02,-shW*1.05,hipY,aW);
+    limb( shW*0.85,shY+H*0.02, shW*1.05,hipY,aW);
     // 砕石位：膝で屈曲。太もも=股→外側(膝)、下腿=膝→足側へまっすぐ下。太もも・下腿を明確に表示
     limb(-hipW*0.5,hipY, cl(-hipW*1.6),hipY+H*0.06, cl(-hipW*1.6),hipY+H*0.27, lW);
     limb( hipW*0.5,hipY, cl( hipW*1.6),hipY+H*0.06, cl( hipW*1.6),hipY+H*0.27, lW);
@@ -2914,7 +2986,7 @@ function drawPatient(dark){
     // 胴体・頭
     torso(shW,hipW,shY,hipY);
     ell(mir*headR*0.3,top+headR,headR*0.82+0.25,headR+0.25,SKIN);
-    // 上側の腕：前面(mir側)・最前面
+    // 上側の腕：前面(mir側)・最前面（肩→肘→手を頭の前方へ）
     limb(mir*shW*0.5,shY-H*0.01, mir*0.129*H,top+H*0.088, mir*0.201*H,top+H*0.072, aW);
   } else if(pose==='bodybuilder'){
     // 画像（bodybuilder.png）が読み込めていれば、その画像をそのまま描画
@@ -2978,7 +3050,7 @@ function drawGuide(dark){
   const camC=w2c(cam.x,cam.y);
   ctx.save();
   ctx.strokeStyle='rgba(0,212,255,0.7)';ctx.lineWidth=1.5;ctx.setLineDash([8,5]);
-  // CAMマーカー（青い十字）を汚さないよう、カメラ位置の周囲に隙間を空けて2分割で描画する
+  // CAMマーカー（白い十字）を汚さないよう、カメラ位置の周囲に隙間を空けて2分割で描画する
   const _gap=13;
   let _ux=endC.x-startC.x, _uy=endC.y-startC.y;
   const _ul=Math.hypot(_ux,_uy)||1; _ux/=_ul; _uy/=_ul;
@@ -3486,7 +3558,7 @@ function setArmSwRel(side){
   sw.value = _armClamp(base + rel);
   onArmSwivel(); if(typeof checkHiddenArm==='function') checkHiddenArm();
 }
-// アームベース中心XのＸ符号を反転（左右反転）
+// アームベース中心XのＸ符号を反転（左右反転）。旋回角も左右反転する。
 function flipArmX(){
   var el = document.getElementById('arm-x');
   if(!el) return;
@@ -3510,7 +3582,7 @@ function initArmPattern(){
   var p = Math.abs(Math.sin(sw*Math.PI/180)) > Math.SQRT1_2 ? 'perp' : 'parallel';
   setArmPattern(p, false);
 }
-function _armRelText(rel){ return Math.abs(rel).toFixed(1)+'°'; }   // 旋回角は常に0〜27.8の絶対値表示
+function _armRelText(rel){ return (rel>0?'+':'')+rel.toFixed(1)+'°'; }
 // arm-sw(スライダー)は絶対角を保持。数値入力・モバイル表示は基準0°の相対角で表示する。
 function onArmSwivel(){
   var sw=document.getElementById('arm-sw'); if(!sw) return;
@@ -3568,7 +3640,6 @@ function updateZoomBadge(){
 }
 
 
-
 // ===== 数値入力のイージングアニメーション（ease-in-out） =====
 // items: [{id, from, to}] / onFrame省略時は毎フレーム render()
 let _animTimer=null;
@@ -3592,7 +3663,12 @@ function _animateVals(items,dur,onFrame){
 }
 
 // ===== ロールイン再生：操作を録画し、実際の操作順どおりに再生 =====
-var rollinRec = { on:false, frames:[], t0:0, timer:null };
+var rollinRec = { on:false, frames:[], t0:0, timer:null, recordedAt:'' };
+// 記録日時のスタンプ（いつ記録したものか判別用）
+function _nowStamp(){
+  var d=new Date(), p=function(n){return ('0'+n).slice(-2);};
+  return d.getFullYear()+'/'+p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+}
 function _rollinCapture(){
   return { ouX:gv('ou-x'), ouY:gv('ou-y'), ouAng:gv('ou-ang'), armSw:gv('arm-sw') };
 }
@@ -3611,8 +3687,15 @@ function _rollinApplyInterp(a,b,k){
   $('arm-sw').value=_lerp(+a.armSw,+b.armSw,k).toFixed(1);
   if(typeof onArmSwivel==='function') onArmSwivel(); else render();
 }
-function _saveRollin(){ try{ localStorage.setItem('hinotori_rollin', JSON.stringify(rollinRec.frames)); }catch(e){} }
-function _loadRollin(){ try{ var v=localStorage.getItem('hinotori_rollin'); if(v){ var a=JSON.parse(v); if(Array.isArray(a)) rollinRec.frames=a; } }catch(e){} }
+function _saveRollin(){ try{ localStorage.setItem('hinotori_rollin', JSON.stringify({frames:rollinRec.frames, recordedAt:rollinRec.recordedAt||''})); }catch(e){} }
+function _loadRollin(){
+  try{
+    var v=localStorage.getItem('hinotori_rollin'); if(!v)return;
+    var o=JSON.parse(v);
+    if(Array.isArray(o)){ rollinRec.frames=o; rollinRec.recordedAt=''; }   // 旧形式（配列のみ）
+    else if(o&&typeof o==='object'){ rollinRec.frames=Array.isArray(o.frames)?o.frames:[]; rollinRec.recordedAt=o.recordedAt||''; }
+  }catch(e){}
+}
 // 記録中に一定間隔でサンプリング（変化があればフレーム追加）
 function _recFrame(){
   var f=_rollinCapture(); f.t=performance.now()-rollinRec.t0;
@@ -3633,16 +3716,21 @@ function startRollinRec(){
 function stopRollinRec(){
   rollinRec.on=false; if(rollinRec.timer){ clearInterval(rollinRec.timer); rollinRec.timer=null; }
   _recFrame();
+  rollinRec.recordedAt = (rollinRec.frames.length>=2) ? _nowStamp() : '';   // 記録日時を刻む
   var b=$('rollin-rec-btn'); if(b){ b.textContent='⏺ 記録開始'; b.classList.remove('btn-active'); }
   _saveRollin(); updateRollinStatus();
 }
-function clearRollinRec(){ if(rollinRec.on) stopRollinRec(); rollinRec.frames=[]; _saveRollin(); updateRollinStatus(); }
+function clearRollinRec(){ if(rollinRec.on) stopRollinRec(); rollinRec.frames=[]; rollinRec.recordedAt=''; _saveRollin(); updateRollinStatus(); }
 function gotoRollinStart(){ if(rollinRec.frames.length) _rollinApply(rollinRec.frames[0]); }
 function updateRollinStatus(){
   var el=$('rollin-status');
   if(el){
     if(rollinRec.on){ el.innerHTML='<span style="color:#ef4444">● 記録中… '+rollinRec.frames.length+' フレーム</span>'; }
-    else if(rollinRec.frames.length>=2){ el.innerHTML='<span style="color:#4ade80">✓ 記録済み（'+rollinRec.frames.length+' フレーム）</span>'; }
+    else if(rollinRec.frames.length>=2){
+      el.innerHTML='<span style="color:#4ade80">✓ 記録済み（'+rollinRec.frames.length+' フレーム）</span>'
+        + (rollinRec.recordedAt ? '<br><span style="color:var(--muted)">🕒 '+rollinRec.recordedAt+' に記録</span>'
+                                : '<br><span style="color:#f59e0b">🕒 記録日時 不明（古いデータ）</span>');
+    }
     else { el.textContent='未記録'; }
   }
   // 下のバーの記録中インジケーター
@@ -3775,16 +3863,23 @@ document.addEventListener('mousemove',e=>{
   if(paintMode && paintDrawing){ paintMouseMove(e); return; }
   if(!drag.active){
     const rect=cvs.getBoundingClientRect();
+    const onCvs = e.clientX>=rect.left&&e.clientX<=rect.right&&e.clientY>=rect.top&&e.clientY<=rect.bottom;
+    if(!onCvs){
+      if(hoverPortId!==null||hoverOU||hoverTable){hoverPortId=null;hoverOU=false;hoverTable=false;cvs.classList.remove('port-hover');render();}
+      return;
+    }
     const wp=c2w(e.clientX-rect.left,e.clientY-rect.top);
     const ep=getExtraPortAt(wp.x,wp.y);
     const newId=ep?ep.id:null;
-    if(newId!==hoverPortId){
-      hoverPortId=newId;
+    const newHoverOU=!ep&&isInOU(wp.x,wp.y);
+    const newHoverTable=!ep&&!newHoverOU&&isInTable(wp.x,wp.y);
+    if(newId!==hoverPortId||newHoverOU!==hoverOU||newHoverTable!==hoverTable){
+      hoverPortId=newId;hoverOU=newHoverOU;hoverTable=newHoverTable;
       render();
     }
-    const wantMove = !!ep || isOnCamPort(wp.x,wp.y);
-    if(wantMove){ cvs.classList.add('port-hover'); }
-    else { cvs.classList.remove('port-hover'); }
+    const onObj=(typeof getCustomObjAt==='function')&&!!getCustomObjAt(wp.x,wp.y);
+    const wantMove=!!ep||isOnCamPort(wp.x,wp.y)||newHoverOU||newHoverTable||onObj;
+    if(wantMove){cvs.classList.add('port-hover');}else{cvs.classList.remove('port-hover');}
     return;
   }
   const dx=(e.clientX-drag.sx)/VIEW.sc;
@@ -3821,6 +3916,11 @@ document.addEventListener('mousemove',e=>{
 
 document.addEventListener('mouseup',e=>{
   if(paintMode){ paintMouseUp(e); return; }
+  // キャンバス上のドラッグが実際に行われていた場合のみ処理する。
+  // （これを行わないと drag.mode が 'extra-port' 等のまま残り、サイドバーの
+  //   ✕削除ボタンや角度計測セレクトをクリックするたびに renderPortList() が走って
+  //   mousedown→mouseup の間に要素が作り直され、click が発火しなくなる）
+  if(!drag.active){ return; }
   if(drag.mode==='extra-port'){
     renderPortList();
     pushState();
@@ -3867,30 +3967,21 @@ cvs.addEventListener('wheel',e=>{
     $('ou-ang').value=c;$('ou-ang-num').value=c.toFixed(1);
     if(typeof onOUAngle==='function') onOUAngle();
   } else if(e.ctrlKey||e.metaKey){
-    if(e.shiftKey){
-      // Ctrl+Shift+ホイール: アームベース回転
-      const ang=parseFloat($('arm-sw').value)+d;
-      const c=Math.max(-180,Math.min(180,ang));
-      $('arm-sw').value=c;$('arm-sw-num').value=c.toFixed(1);
-      if(typeof onArmSwivel==='function') onArmSwivel();
-    } else {
-      // Ctrl+ホイール: 台回転 1°
-      const ang=parseFloat($('tbl-ang').value)+d;
-      const c=Math.max(-180,Math.min(180,ang));
-      $('tbl-ang').value=c;$('tbl-ang-num').value=c.toFixed(1);
-      if(typeof onTableAngle==='function') onTableAngle();
-    }
+    // Ctrl+ホイール: カーソル位置を中心にズーム
+    const rect=cvs.getBoundingClientRect();
+    const cx=e.clientX-rect.left, cy=e.clientY-rect.top;
+    const wx=(cx-CV.w/2-VIEW.px)/VIEW.sc;
+    const wy=(cy-CV.h/2-VIEW.py)/VIEW.sc;
+    const factor=d>0?1.1:1/1.1;
+    VIEW.sc=snapZoomSc(VIEW.sc*factor);   // 許可倍率(1,1.5,2,3…)にスナップ
+    VIEW.px=cx-CV.w/2-wx*VIEW.sc;
+    VIEW.py=cy-CV.h/2-wy*VIEW.sc;
   } else {
-    // ホイール: 選択中オブジェクトの角度変更（選択はクリックで）
-    if(typeof _selectedObjId!=='undefined' && _selectedObjId!==null && typeof customObjs!=='undefined'){
-      for(var i=0;i<customObjs.length;i++){
-        if(customObjs[i].id===_selectedObjId){
-          customObjs[i].ang=((customObjs[i].ang||0)+d*5+720)%360;
-          render(); return;
-        }
-      }
-    }
-    // 未選択時は何もしない
+    // ホイール: OU角度変更 1°
+    const ang=parseFloat($('ou-ang').value)+d;
+    const c=Math.max(-180,Math.min(180,ang));
+    $('ou-ang').value=c;$('ou-ang-num').value=c.toFixed(1);
+    if(typeof onOUAngle==='function') onOUAngle();
   }
   render();
 },{passive:false});
@@ -3920,6 +4011,113 @@ cvs.addEventListener('click',function(e){
   }
 });
 
+
+// ====== 右クリックコンテキストメニュー ======
+(function(){
+  const menu=document.getElementById('ctx-menu');
+  function hide(){ menu.style.display='none'; }
+  function show(x,y,title,items){
+    menu.innerHTML='';
+    if(title){
+      const t=document.createElement('div');
+      t.style.cssText='padding:4px 12px 5px;font-size:10px;color:#94a3b8;border-bottom:1px solid #3a3a5c;margin-bottom:2px;pointer-events:none;';
+      t.textContent=title; menu.appendChild(t);
+    }
+    items.forEach(function(item){
+      if(!item){ const s=document.createElement('div');s.style.cssText='height:1px;background:#3a3a5c;margin:2px 0;';menu.appendChild(s);return; }
+      const el=document.createElement('div');
+      el.style.cssText='padding:7px 14px;cursor:pointer;font-size:12px;color:'+(item.danger?'#f87171':'#e2e8f0')+';white-space:nowrap;user-select:none;';
+      el.textContent=item.label;
+      el.addEventListener('mouseenter',function(){el.style.background='rgba(0,212,255,0.15)';});
+      el.addEventListener('mouseleave',function(){el.style.background='';});
+      el.addEventListener('mousedown',function(e){e.stopPropagation();});
+      el.addEventListener('click',function(){hide();item.action();});
+      menu.appendChild(el);
+    });
+    menu.style.display='block';
+    const mw=menu.offsetWidth,mh=menu.offsetHeight;
+    menu.style.left=Math.min(x,window.innerWidth-mw-8)+'px';
+    menu.style.top=Math.min(y,window.innerHeight-mh-8)+'px';
+  }
+  document.addEventListener('click',hide);
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')hide();});
+
+  cvs.addEventListener('contextmenu',function(e){
+    e.preventDefault();
+    const rect=cvs.getBoundingClientRect();
+    const wx=(e.clientX-rect.left-CV.w/2-VIEW.px)/VIEW.sc;
+    const wy=-(e.clientY-rect.top-CV.h/2-VIEW.py)/VIEW.sc;
+
+    // 追加ポート
+    const ep=getExtraPortAt(wx,wy);
+    if(ep){
+      show(e.clientX,e.clientY,'ポート '+(ep.label||ep.id),[
+        {label:'🗑️ ポートを削除',danger:true,action:function(){removeExtraPort(ep.id);if(typeof pushState==='function')pushState();}}
+      ]); return;
+    }
+
+    // カスタムオブジェクト
+    if(typeof customObjs!=='undefined'){
+      for(var i=customObjs.length-1;i>=0;i--){
+        var o=customObjs[i],dx=wx-o.x,dy=wy-o.y,hit=false;
+        if(o.type==='room'){var rR=(o.ang||0)*Math.PI/180,lxR=dx*Math.cos(rR)+dy*Math.sin(rR),lyR=-dx*Math.sin(rR)+dy*Math.cos(rR),swR=(o.strokeWidth||2)+20;hit=(Math.abs(lxR)<=(o.w||6450)/2+20&&Math.abs(lyR)<=(o.h||6850)/2+20)&&!(Math.abs(lxR)<=(o.w||6450)/2-swR&&Math.abs(lyR)<=(o.h||6850)/2-swR);}
+        else if(o.type==='rect'){var r=(o.ang||0)*Math.PI/180,lx=dx*Math.cos(r)+dy*Math.sin(r),ly=-dx*Math.sin(r)+dy*Math.cos(r);hit=Math.abs(lx)<=(o.w||200)/2+20&&Math.abs(ly)<=(o.h||200)/2+20;}
+        else if(o.type==='circle'){hit=Math.sqrt(dx*dx+dy*dy)<=(o.r||200)/2+20;}
+        else if(o.type==='text'){hit=Math.abs(dx)<=(o.fontSize||100)*2&&Math.abs(dy)<=(o.fontSize||100);}
+        else if(o.type==='cockpit'||o.type==='vision'){var r2=(o.ang||0)*Math.PI/180,lx2=dx*Math.cos(r2)+dy*Math.sin(r2),ly2=-dx*Math.sin(r2)+dy*Math.cos(r2);hit=Math.abs(lx2)<=(o.w||970)/2+20&&Math.abs(ly2)<=(o.h||1150)/2+20;}
+        if(hit){
+          _selectedObjId=o.id; render();
+          var _o=o;
+          show(e.clientX,e.clientY,_o.label||(_o.type==='rect'?'四角形':_o.type==='circle'?'円':_o.type==='cockpit'?'サージョンコックピット':_o.type==='vision'?'ビジョンユニット':_o.type==='room'?'手術室':'テキスト'),[
+            {label:'↻ 右に15°回転',action:function(){_o.ang=(((_o.ang||0)+15+540)%360)-180;render();if(typeof pushState==='function')pushState();}},
+            {label:'↺ 左に15°回転',action:function(){_o.ang=(((_o.ang||0)-15+540)%360)-180;render();if(typeof pushState==='function')pushState();}},
+            {label:'⟲ 角度を入力…',action:function(){var v=prompt('角度 (°) を入力',(_o.ang||0));if(v===null)return;var n=parseFloat(v);if(!isNaN(n)){_o.ang=n;render();if(typeof pushState==='function')pushState();}}},
+            null,
+            {label:'📋 複製',action:function(){
+              var copy=Object.assign({},_o,{id:Date.now(),x:_o.x+50,y:_o.y-50});
+              customObjs.push(copy);_selectedObjId=copy.id;
+              if(typeof renderObjList==='function')renderObjList();
+              render();if(typeof pushState==='function')pushState();
+            }},
+            null,
+            {label:'🗑️ 削除',danger:true,action:function(){deleteCustomObj(_o.id);if(typeof pushState==='function')pushState();}}
+          ]); return;
+        }
+      }
+    }
+
+    // OU
+    if(isInOU(wx,wy)){
+      show(e.clientX,e.clientY,'OU',[
+        {label:'🎯 OUを画面中央に',action:function(){
+          var oc=w2c(gv('ou-x'),gv('ou-y'));
+          VIEW.px+=CV.w/2-oc.x; VIEW.py+=CV.h/2-oc.y; render();
+        }},
+        {label:'↩ OU位置をリセット',action:function(){
+          $('ou-x').value=0;$('ou-y').value=0;render();if(typeof pushState==='function')pushState();
+        }}
+      ]); return;
+    }
+
+    // 手術台
+    if(isInTable(wx,wy)){
+      show(e.clientX,e.clientY,'手術台',[
+        {label:'🎯 台を画面中央に',action:function(){
+          var tc=w2c(gv('tbl-x'),gv('tbl-y'));
+          VIEW.px+=CV.w/2-tc.x; VIEW.py+=CV.h/2-tc.y; render();
+        }},
+        {label:'↩ 台位置をリセット',action:function(){
+          $('tbl-x').value=0;$('tbl-y').value=0;render();if(typeof pushState==='function')pushState();
+        }}
+      ]); return;
+    }
+
+    // 空白
+    show(e.clientX,e.clientY,null,[
+      {label:'🎯 視点をリセット',action:function(){VIEW.px=0;VIEW.py=0;render();}}
+    ]);
+  });
+})();
 
 // ====== ペイント ======
 let paintMode = false;
@@ -4242,7 +4440,8 @@ function getPresetData(){
     activeTblPreset: activeTblPresetName,
     paintStrokes: JSON.parse(JSON.stringify(paintStrokes)),
     customObjs: JSON.parse(JSON.stringify(customObjs||[])),
-    rollinFrames: JSON.parse(JSON.stringify((typeof rollinRec!=='undefined'&&rollinRec.frames)||[]))
+    rollinFrames: JSON.parse(JSON.stringify((typeof rollinRec!=='undefined'&&rollinRec.frames)||[])),
+    rollinRecordedAt: (typeof rollinRec!=='undefined' && rollinRec.recordedAt) || ''
   };
 }
 function applyPresetData(d){
@@ -4288,10 +4487,12 @@ function applyPresetData(d){
     nextObjId=customObjs.reduce(function(m,o){return Math.max(m,o.id||0);},0)+1;
     if(typeof renderObjList==='function')renderObjList();
   }
-  // ロールイン再生の記録も復元
-  if(Array.isArray(d.rollinFrames) && typeof rollinRec!=='undefined'){
+  // ロールイン再生の記録も復元。記録を持たないプリセットでは必ず空にして、
+  // 前のプリセットの記録が residually 残らないようにする
+  if(typeof rollinRec!=='undefined'){
     if(rollinRec.on && typeof stopRollinRec==='function') stopRollinRec();
-    rollinRec.frames=JSON.parse(JSON.stringify(d.rollinFrames));
+    rollinRec.frames = Array.isArray(d.rollinFrames) ? JSON.parse(JSON.stringify(d.rollinFrames)) : [];
+    rollinRec.recordedAt = d.rollinRecordedAt || '';
     if(typeof _saveRollin==='function')_saveRollin();
     if(typeof updateRollinStatus==='function')updateRollinStatus();
   }
@@ -4429,7 +4630,7 @@ function _shareData(){
   const inc=$('share-incl-paint')&&$('share-incl-paint').checked;
   if(!inc) delete data.paintStrokes;
   const incR=$('share-incl-rollin')&&$('share-incl-rollin').checked;
-  if(!incR) delete data.rollinFrames;
+  if(!incR){ delete data.rollinFrames; delete data.rollinRecordedAt; }
   // レイアウト名を同梱（読込先でプリセット名として自動入力される）
   const nm=($('pr-name')&&$('pr-name').value.trim())||currentLayoutName;
   if(nm) data.presetName=nm;
@@ -4675,14 +4876,59 @@ window.addEventListener('load',function(){
 
 
 
-function doExport(){
+// ====== PNG出力モーダル ======
+function openExportModal(){
+  const hint=$('exp-loc-hint');
+  if(hint){
+    hint.textContent = window.showSaveFilePicker
+      ? '「出力」を押すと保存先フォルダ・ファイル名を選べます。'
+      : 'このブラウザは保存先選択に非対応のため、ブラウザ既定のダウンロード先に保存されます。';
+  }
+  $('export-modal').classList.add('show');
+  const ni=$('exp-name'); if(ni){ ni.focus(); ni.select(); }
+}
+function closeExportModal(){ $('export-modal').classList.remove('show'); }
+
+// canvasをPNGとして保存。対応ブラウザ(Chrome/Edge)では保存先を選択。
+// 戻り値: true=保存完了 / false=ユーザーがキャンセル
+function savePNG(canvas, name){
+  const fname = (name||'hinotori_rollin').replace(/[\\/:*?"<>|]/g,'_') + '.png';
+  return new Promise(function(resolve){
+    canvas.toBlob(async function(blob){
+      if(!blob){ alert('画像の生成に失敗しました'); resolve(false); return; }
+      // File System Access API（Chrome/Edge）で保存先を選択
+      if(window.showSaveFilePicker){
+        try{
+          const handle = await window.showSaveFilePicker({
+            suggestedName: fname,
+            types:[{description:'PNG画像', accept:{'image/png':['.png']}}]
+          });
+          const writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+          resolve(true); return;
+        }catch(e){
+          if(e && e.name==='AbortError'){ resolve(false); return; } // ユーザーがキャンセル
+          // それ以外（権限エラー等）は従来のダウンロードにフォールバック
+        }
+      }
+      // フォールバック：ブラウザ既定のダウンロード先へ保存
+      const a=document.createElement('a');
+      a.download=fname;
+      a.href=URL.createObjectURL(blob);
+      a.click();
+      setTimeout(function(){URL.revokeObjectURL(a.href);},5000);
+      resolve(true);
+    },'image/png');
+  });
+}
+
+async function doExport(){
   const name=$('exp-name').value.trim()||'hinotori_rollin';
   const addInfo = $('exp-info').checked;
 
   if(!addInfo){
-    const link=document.createElement('a');
-    link.download=name+'.png';link.href=cvs.toDataURL('image/png');link.click();
-    closeExportModal();
+    if(await savePNG(cvs, name)) closeExportModal();
     return;
   }
 
@@ -4801,11 +5047,7 @@ function doExport(){
     oc.fillText(item[1], baseX + colW - 6, baseY + rowH/2 - 1);
   });
 
-  const link = document.createElement('a');
-  link.download = name + '.png';
-  link.href = offCanvas.toDataURL('image/png');
-  link.click();
-  closeExportModal();
+  if(await savePNG(offCanvas, name)) closeExportModal();
 }
 
 
@@ -4874,7 +5116,45 @@ function clearDefaults(){
 function openHelpModal(){$('help-modal').classList.add('show');}
 function closeHelpModal(){$('help-modal').classList.remove('show');}
 $('help-modal').addEventListener('click',e=>{if(e.target===$('help-modal'))closeHelpModal();});
+$('export-modal').addEventListener('click',e=>{if(e.target===$('export-modal'))closeExportModal();});
 $('scan-modal').addEventListener('click',e=>{if(e.target===$('scan-modal'))closeScanModal();});
+
+// ヘッダーボタン列：スクロールバー非表示のため、縦ホイール／クリック長押しドラッグで横スクロール
+(function(){
+  const hb=document.querySelector('.hdr-btns');
+  if(!hb)return;
+  // 縦ホイール → 横スクロール
+  hb.addEventListener('wheel',function(e){
+    if(hb.scrollWidth<=hb.clientWidth)return;        // スクロール不要なら通常動作
+    const dy=Math.abs(e.deltaY)>Math.abs(e.deltaX)?e.deltaY:e.deltaX;
+    if(dy===0)return;
+    e.preventDefault();
+    hb.scrollLeft+=dy;
+  },{passive:false});
+
+  // クリックして保持したままドラッグ → 横スクロール（グラブスクロール）
+  let down=false, moved=false, startX=0, startScroll=0;
+  hb.addEventListener('mousedown',function(e){
+    if(e.button!==0)return;
+    down=true; moved=false;
+    startX=e.pageX; startScroll=hb.scrollLeft;
+  });
+  window.addEventListener('mousemove',function(e){
+    if(!down)return;
+    const dx=e.pageX-startX;
+    if(!moved && Math.abs(dx)>4){ moved=true; hb.classList.add('dragging'); }
+    if(moved){ e.preventDefault(); hb.scrollLeft=startScroll-dx; }
+  });
+  window.addEventListener('mouseup',function(){
+    if(!down)return;
+    down=false;
+    hb.classList.remove('dragging');
+  });
+  // ドラッグした場合は直後のクリックでボタンが誤発火しないよう抑止
+  hb.addEventListener('click',function(e){
+    if(moved){ e.preventDefault(); e.stopPropagation(); moved=false; }
+  },true);
+})();
 
 function toggleDrawer(){
   const sb=document.querySelector('.sidebar');const ov=$('drawer-overlay');
@@ -5085,14 +5365,14 @@ cvs.addEventListener('touchend',e=>{
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
       <div style="color:#60a5fa;font-size:10px;font-weight:700;margin-bottom:2px;">台回転</div>
       <div style="display:flex;gap:6px;align-items:center;">
-        <div class="sp-btn sp-rot-btn" id="spTRL" onclick="spTblRotate(+_rotStep)" style="width:54px;height:54px;font-size:18px;border-color:#60a5fa;flex-direction:column;gap:1px;">
+        <div class="sp-btn sp-rot-btn" id="spTRL" style="width:54px;height:54px;font-size:18px;border-color:#60a5fa;flex-direction:column;gap:1px;">
           <span>↺</span><span style="font-size:9px;color:#60a5fa;">左回転</span>
         </div>
         <div style="width:46px;height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
           <div id="sp-trot-angle" style="color:#60a5fa;font-size:14px;font-weight:700;min-width:48px;text-align:center;">0°</div>
           <div style="color:#5a6480;font-size:9px;">角度</div>
         </div>
-        <div class="sp-btn sp-rot-btn" id="spTRR" onclick="spTblRotate(-_rotStep)" style="width:54px;height:54px;font-size:18px;border-color:#60a5fa;flex-direction:column;gap:1px;">
+        <div class="sp-btn sp-rot-btn" id="spTRR" style="width:54px;height:54px;font-size:18px;border-color:#60a5fa;flex-direction:column;gap:1px;">
           <span>↻</span><span style="font-size:9px;color:#60a5fa;">右回転</span>
         </div>
       </div>
@@ -5277,37 +5557,44 @@ cvs.addEventListener('touchend',e=>{
   function bindBtn(id,dir){
     var el=document.getElementById(id);
     if(!el)return;
-    el.addEventListener('touchstart',function(e){
+    var start=function(e){
       e.preventDefault();e.stopPropagation();
       spStep(dir);
       _dir=dir;
       _timer=setInterval(function(){spStep(_dir);},100);
-    },{passive:false});
-    el.addEventListener('touchend',function(e){
-      e.preventDefault();e.stopPropagation();
+    };
+    var stop=function(e){
+      if(e&&e.cancelable)e.preventDefault();
+      e&&e.stopPropagation();
       clearInterval(_timer);_timer=null;_dir='';
-    },{passive:false});
-    el.addEventListener('touchcancel',function(e){
-      e.preventDefault();
-      clearInterval(_timer);_timer=null;_dir='';
-    },{passive:false});
+    };
+    el.addEventListener('touchstart',start,{passive:false});
+    el.addEventListener('touchend',stop,{passive:false});
+    el.addEventListener('touchcancel',stop,{passive:false});
+    el.addEventListener('mousedown',start);
+    el.addEventListener('mouseup',stop);
+    el.addEventListener('mouseleave',stop);
   }
-  
+
   function bindRotBtn(id, delta) {
     var el = document.getElementById(id);
     if(!el) return;
-    el.addEventListener('touchstart', function(e){
+    var start=function(e){
       e.preventDefault(); e.stopPropagation();
       spRotate(delta * _rotStep);
       _timer = setInterval(function(){ spRotate(delta * _rotStep); }, 100);
-    },{passive:false});
-    el.addEventListener('touchend', function(e){
-      e.preventDefault(); e.stopPropagation();
+    };
+    var stop=function(e){
+      if(e&&e.cancelable)e.preventDefault();
+      e&&e.stopPropagation();
       clearInterval(_timer); _timer=null;
-    },{passive:false});
-    el.addEventListener('touchcancel', function(e){
-      e.preventDefault(); clearInterval(_timer); _timer=null;
-    },{passive:false});
+    };
+    el.addEventListener('touchstart', start, {passive:false});
+    el.addEventListener('touchend', stop, {passive:false});
+    el.addEventListener('touchcancel', stop, {passive:false});
+    el.addEventListener('mousedown', start);
+    el.addEventListener('mouseup', stop);
+    el.addEventListener('mouseleave', stop);
   }
   
   function spRotate(delta) {
@@ -5398,6 +5685,9 @@ cvs.addEventListener('touchend',e=>{
     bindRotBtn('spRR', -1);
     bindStepBtn('spRSlow', false);
     bindStepBtn('spRFast', true);
+    // 台回転ボタン（マウス・タッチ両対応、長押しで連続回転）
+    bindHold(document.getElementById('spTRL'), function(){ spTblRotate(1); });
+    bindHold(document.getElementById('spTRR'), function(){ spTblRotate(-1); });
     hookTouch();
   }
   if(document.readyState==='loading'){
