@@ -676,10 +676,10 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
     </div>
 
     <div class="sec">
-      <div class="sec-hd" onclick="toggleSec(this)"><span>📍 追加ポート</span><span class="arr">▶</span></div>
+      <div class="sec-hd" onclick="toggleSec(this)"><span>📍 ポート</span><span class="arr">▶</span></div>
       <div class="sec-bd">
         <div style="font-size:10px;color:var(--muted);margin-bottom:6px">
-          ヘッダーの「📍 ポート追加」ボタンを押してキャンバス上をクリックすると追加できます。<br>追加後は下のリストで色・ラベル・X/Y位置・サイズを調整できます（キャンバス上のドラッグでも移動可）。
+          ヘッダーの「📍 ポート追加」ボタンを押してキャンバス上をクリックするとポートを追加できます。<br>追加後は下のリストで色・ラベル・X/Y位置・サイズを調整できます（キャンバス上のドラッグでも移動可）。
         </div>
         <div class="f">
           <label>ポートラベル</label>
@@ -859,7 +859,7 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
         <div class="f"><label><input type="checkbox" id="show-rollin" checked onchange="render()"> ロールイン角・OU回転軸表示</label></div>
         <div class="f"><label><input type="checkbox" id="show-tilt-axis" onchange="render()"> 傾斜：回転軸を表示</label></div>
         <div class="f"><label><input type="checkbox" id="show-tilt-offset" onchange="render()"> 傾斜：補正移動距離を表示</label></div>
-        <div class="f"><label><input type="checkbox" id="show-port-label" onchange="render()"> 追加ポート名を表示</label></div>
+        <div class="f"><label><input type="checkbox" id="show-port-label" onchange="render()"> ポート名を表示</label></div>
         <div class="f"><label><input type="checkbox" id="show-port-dist" onchange="render()"> ポート間距離を表示 (cm)</label></div>
         <div class="f"><label>ロールイン角 矢印の長さ (px)</label><input type="number" id="rollin-arrow-len" value="100" min="10" max="300" oninput="render()"></div>
         <div class="f"><label>背景色</label>
@@ -1027,7 +1027,7 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
       <tr><td>🔄 デフォルト</td><td>全項目をデフォルト値に戻す</td></tr>
       <tr><td>↩ Undo</td><td>直前の操作を取り消す（Ctrl+Z）</td></tr>
       <tr><td>📏 距離計測</td><td>ONにして2点クリック／タップで距離表示（タッチ時は📏ピンモードで微調整可）</td></tr>
-      <tr><td>📍 ポート追加</td><td>ONにしてクリック／タップでポート配置</td></tr>
+      <tr><td>📍 ポート追加</td><td>ONにしてクリック／タップでポート配置（配置後はサイドバーの「📍 ポート」で色・ラベル・位置・サイズを調整）</td></tr>
       <tr><td>🖊 ペイント</td><td>書き込みモード</td></tr>
       <tr><td>📷 PNG出力</td><td>現在の画面を画像として保存（保存先を選択可能）</td></tr>
       <tr><td>💾 保存・共有</td><td>QRコードで対面共有／JSONファイルで保存・読込</td></tr>
@@ -1042,15 +1042,15 @@ body { overflow: hidden !important; max-width: 100vw; max-height: 100vh; }
     <details class="help-credit" style="margin-top:16px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
       <summary style="cursor:pointer;font-weight:600;font-size:12px;padding:10px 12px;background:rgba(255,255,255,0.04);user-select:none">ⓘ クレジット・お問い合わせ</summary>
       <div style="font-size:12px;line-height:1.75;padding:12px 14px;color:var(--text)">
-        開発者：川嶋 克基（金沢大学附属病院 ME機器管理センター）<br>
-        Version 1.1.0<br>
-        © 2026 川嶋 克基<br>
+        開発者：川嶋 克（金沢附属病院 ME機器管理センター）<br>
+        Version 1.0.0<br>
+        © 2026 川嶋 克<br>
         ライセンス：CC BY-NC 4.0<br>
         <br>
         学会発表：「hinotoriロールインシミュレーターの開発」<br>
         第19回 日本ロボット外科学会学術集会（2027年2月）<br>
         <br>
-        お問い合わせ：<span style="color:var(--accent)">kawashimakatsuki.ce@gmail.com</span><br>
+        お問い合わせ：<span style="color:var(--accent)">kawashima.ce@gmail.com</span><br>
         <br>
         <span style="color:var(--muted);font-size:11px">本シミュレーターは教育・イメージ共有を目的としたツールです。実際の手術における判断は必ず実機および施設のプロトコルに従ってください。本ツールの使用により生じたいかなる損害についても開発者は責任を負いません。</span>
       </div>
@@ -1274,7 +1274,7 @@ function renderPortList(){
   if(typeof renderUsedColorSwatches==='function') renderUsedColorSwatches();
   const el = $('port-list');
   if(!extraPorts.length){
-    el.innerHTML='<div style="font-size:10px;color:var(--muted);padding:4px 0">追加ポートなし</div>';
+    el.innerHTML='<div style="font-size:10px;color:var(--muted);padding:4px 0">ポートなし</div>';
     return;
   }
   const esc = s => (s==null?'':String(s)).replace(/"/g,'&quot;');
@@ -4747,7 +4747,7 @@ function _qrSizeHint(){
     var d=_shareData(), parts=[];
     if(d.paintStrokes && d.paintStrokes.length) parts.push('ペイント描画');
     if(d.customObjs && d.customObjs.length) parts.push('配置オブジェクト'+d.customObjs.length+'個');
-    if(d.extraPorts && d.extraPorts.length) parts.push('追加ポート'+d.extraPorts.length+'個');
+    if(d.extraPorts && d.extraPorts.length) parts.push('ポート'+d.extraPorts.length+'個');
     return parts.length ? '主な要因: '+parts.join('・')+'。これらを減らすと収まる場合があります。' : '';
   }catch(e){ return ''; }
 }
